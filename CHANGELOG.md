@@ -1,5 +1,32 @@
 # Change log
 
+## 2026-10-25T03:45:00+05:30 — Auto-hide leaderboard, replay sync, no accidental round-start from results
+
+- Changed: `src/spectate/boardui.ts`, `src/replay/results.ts`, `src/main.ts`,
+  `src/spectate/watch.ts`.
+- Why (user feedback): after entering a name, the leaderboard stayed over
+  the replay (10 s or indefinitely if `wasVisible` was true), so the
+  replay finished unseen behind it; and clicking outside the board to
+  dismiss it fired a `'tap'` gesture on `#results`, which immediately
+  jumped into the next round.
+- Changes:
+  - `BoardUI.flash` now **always** schedules its auto-hide timer and uses a
+    short **3.2 s** window (was 10 s and skipped the timer when already
+    visible).
+  - Clicking anywhere outside `#board` while it is open dismisses `#board`
+    in the capture phase and swallows the pointer event so it never
+    triggers `#results` underneath.
+  - Replay now pauses at `0:00` while the name prompt / board flash is up
+    and automatically starts from `0:00` (`results.restartReplay()`) the
+    moment the board hides (or when naming is skipped), so the full replay
+    is always watched unobstructed.
+  - In visual/desktop mode (`#results` has explicit `Retry`, `Next level`,
+    `Leaderboard (L)`, and `Menu` buttons), stray clicks on the replay
+    canvas or background no longer start the next round.
+- Validation: `npx tsc --noEmit` clean; `vitest` 105/105; `vite build` clean.
+- Limitations: blindfolded touch mode (`!visual`) still advances on tap
+  when the leaderboard is not open.
+
 ## 2026-10-25T03:30:00+05:30 — Returning-player picker + best-score deduplication
 
 - Changed: `src/spectate/leaderboard.ts`, `src/spectate/boardui.ts`,

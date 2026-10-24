@@ -23,6 +23,8 @@ export class ResultsScreen {
   private level: Level | null = null;
   onRetry: (() => void) | null = null;
   onNext: (() => void) | null = null;
+  onMenu: (() => void) | null = null;
+  onBoard: (() => void) | null = null;
   private lastFrame = 0;
 
   constructor(parent: HTMLElement) {
@@ -42,6 +44,8 @@ export class ResultsScreen {
         <div class="controls">
           <button id="res-retry">Retry</button>
           <button id="res-next">Next level</button>
+          <button id="res-board">Leaderboard (L)</button>
+          <button id="res-menu">Menu</button>
         </div>
       </div>`;
     parent.appendChild(this.el);
@@ -52,6 +56,8 @@ export class ResultsScreen {
     this.speedBtn = this.el.querySelector('#res-speed')!;
     this.retryBtn = this.el.querySelector('#res-retry')!;
     this.nextBtn = this.el.querySelector('#res-next')!;
+    const boardBtn = this.el.querySelector<HTMLButtonElement>('#res-board')!;
+    const menuBtn = this.el.querySelector<HTMLButtonElement>('#res-menu')!;
 
     this.playBtn.addEventListener('click', () => this.togglePlay());
     this.speedBtn.addEventListener('click', () => {
@@ -64,6 +70,8 @@ export class ResultsScreen {
     });
     this.retryBtn.addEventListener('click', () => this.onRetry?.());
     this.nextBtn.addEventListener('click', () => this.onNext?.());
+    boardBtn.addEventListener('click', () => this.onBoard?.());
+    menuBtn.addEventListener('click', () => this.onMenu?.());
   }
 
   show(rec: Recording, level: Level, canNext: boolean): void {
@@ -127,6 +135,22 @@ export class ResultsScreen {
     this.playing = !this.playing;
     if (this.playing && this.playT >= this.rec.duration) this.playT = 0;
     this.playBtn.textContent = this.playing ? 'Pause' : 'Play';
+  }
+
+  /** Pause the replay (e.g. while the player is typing their name). */
+  pauseReplay(): void {
+    this.playing = false;
+    this.playBtn.textContent = 'Play';
+  }
+
+  /** Restart the replay from t = 0 (e.g. once the leaderboard hides). */
+  restartReplay(): void {
+    if (!this.rec) return;
+    this.playT = 0;
+    this.playing = true;
+    this.lastFrame = performance.now();
+    this.scrub.value = '0';
+    this.playBtn.textContent = 'Pause';
   }
 
   retry(): void {

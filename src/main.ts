@@ -207,6 +207,25 @@ function boot(): void {
     const n = currentLevel ? nextLevel(currentLevel) : null;
     if (n) startLevel(n); else enterMenu();
   };
+  results.onMenu = () => {
+    results.hide();
+    enterMenu();
+  };
+  results.onBoard = () => {
+    const key = boardUi.currentKey ?? (currentLevel
+      ? boardKey({
+        levelId: currentLevel.meta.id,
+        customHash: currentLevel.meta.id === 'custom' ? customHash(currentLevel.map) : undefined,
+        assist,
+      })
+      : null);
+    boardUi.toggle(key);
+  };
+  // Whenever the leaderboard hides over the results screen, restart the
+  // replay from 0:00 so the player can watch their full run unobstructed.
+  boardUi.onHide = () => {
+    if (phase === 'results') results.restartReplay();
+  };
 
   // ── wake lock ─────────────────────────────────────────────────────────
   async function requestWakeLock(): Promise<void> {
@@ -536,6 +555,9 @@ function boot(): void {
     // (same localStorage /watch reads). Phone runs arrive via broadcast —
     // and the blindfolded player never types.
     if (visual && rec.outcome) {
+      // Hold the replay at 0:00 while the player enters their name + sees
+      // the 3s leaderboard flash; it starts from 0:00 as soon as that clears.
+      results.pauseReplay();
       const key = boardKey({ levelId: rec.levelId, customHash: rec.customHash, assist: rec.assist });
       const run: BoardRun = {
         levelId: rec.levelId,
@@ -547,7 +569,10 @@ function boot(): void {
         assist: !!rec.assist,
         hunted: !!rec.hunted,
       };
-      recordRun(boardUi, key, run);
+      recordRun(boardUi, key, run, undefined, () => {
+        // If the player skipped naming (no board flash), start the replay now.
+        if (!boardUi.visible && phase === 'results') results.restartReplay();
+      });
     }
     const summary = outcome === 'win'
       ? MENU.winSummary(rec.duration, rec.clicks)
@@ -624,10 +649,19 @@ function boot(): void {
         }
         break;
       case 'results': {
+        // Never let a tap on results leak through while the leaderboard or
+        // name prompt is open — dismiss the board instead.
+        if (boardUi.visible || boardUi.isPromptOpen) {
+          if (e.type === 'tap') boardUi.hide();
+          break;
+        }
         if (e.type === 'tap' && acceptPendingCustom()) break;
         if (!lastRec || !currentLevel) break;
         const won = lastRec.outcome === 'win';
-        if (e.type === 'tap') {
+        // In visual/desktop mode, #results has explicit Retry / Next level /
+        // Menu buttons — a stray click on the canvas or background must NOT
+        // jump into the next round while the player is watching the replay.
+        if (e.type === 'tap' && !visual) {
           results.hide();
           if (won) {
             const n = nextLevel(currentLevel);

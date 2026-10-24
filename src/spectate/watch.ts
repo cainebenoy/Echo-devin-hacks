@@ -57,6 +57,10 @@ export function startWatchPage(root: HTMLElement): void {
   const results = new ResultsScreen(root);
   const sub = new SpectateSub();
   const boardUi = new BoardUI(root);
+  results.onBoard = () => boardUi.toggle(lastBoardKey);
+  boardUi.onHide = () => {
+    if (ended) results.restartReplay();
+  };
 
   let canvas: HTMLCanvasElement;
   let level: Level | null = null;
@@ -141,6 +145,7 @@ export function startWatchPage(root: HTMLElement): void {
       if (rec && level && !hunterMode) {
         stage.classList.add('hidden');
         results.show(rec, level, false);
+        results.pauseReplay();
       }
       if (rec) {
         // Every finished run feeds the projector leaderboard — the
@@ -161,7 +166,9 @@ export function startWatchPage(root: HTMLElement): void {
           assist: !!rec.assist,
           hunted: !!rec.hunted,
         };
-        recordRun(boardUi, key, run);
+        recordRun(boardUi, key, run, undefined, () => {
+          if (!boardUi.visible && ended) results.restartReplay();
+        });
       }
     }
   };

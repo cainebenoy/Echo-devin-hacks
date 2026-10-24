@@ -20,8 +20,14 @@ export class BoardUI {
   /** The board key currently displayed (for L toggle / Shift+L clear). */
   currentKey: string | null = null;
   visible = false;
-  private pending: { key: string; run: BoardRun; onSaved?: (rank: number, record: boolean) => void }[] = [];
+  /** Optional hook fired whenever the board hides (e.g. restart replay). */
+  onHide: (() => void) | null = null;
+  private pending: { key: string; run: BoardRun; onSaved?: (rank: number, record: boolean) => void; onDone?: () => void }[] = [];
   private promptOpen = false;
+
+  get isPromptOpen(): boolean {
+    return this.promptOpen;
+  }
 
   constructor(parent: HTMLElement) {
     this.panel = document.createElement('div');
@@ -30,7 +36,7 @@ export class BoardUI {
     this.panel.innerHTML = `
       <h2>LEADERBOARD <span id="board-key"></span> <button id="board-close" title="Close (L / Esc)">×</button></h2>
       <ol id="board-rows"></ol>
-      <p class="board-hint">L / Esc close · Shift+L clear · click a row to edit</p>`;
+      <p class="board-hint">Auto-hides in 3s · click anywhere outside, L, or Esc to close · click a row to edit · Shift+L clear</p>`;
     parent.appendChild(this.panel);
     this.rows = this.panel.querySelector('#board-rows')!;
     this.keyLabel = this.panel.querySelector('#board-key')!;
@@ -38,6 +44,17 @@ export class BoardUI {
       e.stopPropagation();
       this.hide();
     });
+    // Clicking anywhere outside an open board dismisses it AND swallows the
+    // pointer event in the capture phase so it never triggers results/gameplay
+    // underneath (which previously caused a click to start the next round).
+    window.addEventListener('pointerdown', (e) => {
+      if (!this.visible || this.promptOpen) return;
+      const t = e.target as Node | null;
+      if (t && this.panel.contains(t)) return;
+      e.stopPropagation();
+      e.preventDefault();
+      this.hide();
+    }, true);
     // Escape also dismisses an open board (when no name prompt owns focus).
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.visible && !this.promptOpen) {
@@ -104,9 +121,11 @@ export class BoardUI {
   }
 
   hide(): void {
+    const was = this.visible;
     this.visible = false;
     window.clearTimeout(this.hideTimer);
     this.panel.classList.add('hidden');
+    if (was) this.onHide?.();
   }
 
   toggle(key: string | null): void {
@@ -114,15 +133,13 @@ export class BoardUI {
     else if (key) this.show(key);
   }
 
-  /** After a save: show the board 10 s with the entry highlighted; on a
-   * new #1 fire the sting + banner. Returns to the previous visibility. */
-  flash(key: string, rank: number, record: boolean): void {
-    const wasVisible = this.visible;
+  /** After a save: show the board briefly (3.2 s) with the entry highlighted
+   * and auto-hide so the replay underneath is unobstructed; on a new #1 fire
+   * the sting + banner. Always schedules the auto-hide timer. */
+  flash(key: string, rank: number, record: boolean, durationMs = 3200): void {
     this.show(key, rank);
-    if (!wasVisible) {
-      window.clearTimeout(this.hideTimer);
-      this.hideTimer = window.setTimeout(() => this.hide(), 10000);
-    }
+    window.clearTimeout(this.hideTimer);
+    this.hideTimer = window.setTimeout(() => this.hide(), durationMs);
     if (record) {
       this.banner.classList.remove('hidden');
       window.clearTimeout(this.bannerTimer);
@@ -148,8 +165,13 @@ export class BoardUI {
    * while the operator is still naming the previous player is never
    * silently discarded (the old code just dropped it).
    */
-  feed(key: string, run: BoardRun, onSaved?: (rank: number, record: boolean) => void): void {
-    this.pending.push({ key, run, onSaved });
+  feed(
+    key: string,
+    run: BoardRun,
+    onSaved?: (rank: number, record: boolean) => void,
+    onDone?: () => void,
+  ): void {
+    this.pending.push({ key, run, onSaved, onDone });
     this.drainPrompts();
   }
 
@@ -165,6 +187,7 @@ export class BoardUI {
         this.flash(next.key, rank, record);
         next.onSaved?.(rank, record);
       }
+      next.onDone?.();
       this.drainPrompts();
     }, 'Name this player', next.key);
   }
@@ -289,8 +312,9 @@ export function recordRun(
   key: string,
   run: BoardRun,
   onSaved?: (rank: number, record: boolean) => void,
+  onDone?: () => void,
 ): void {
-  ui.feed(key, run, onSaved);
+  ui.feed(key, run, onSaved, onDone);
 }
 
 function escapeHtml(s: string): string {
