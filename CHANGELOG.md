@@ -258,3 +258,31 @@
 - Why: the always-on debug HUD cluttered the screen when not needed.
 - Validation: `tsc` clean; 78/78 tests; `vite build` clean.
 - Limitations: none.
+
+## 2026-10-25T03:05:00+05:30 — The Hold rebalance + beacon aiming clarity
+
+- Changed: `src/game/creature.ts` — footsteps can no longer trigger a hunt
+  (only clicks within huntEnter can); during a hunt the creature charges the
+  last *heard* position and footsteps no longer re-target it; a 4 s
+  `huntCooldownSec` after every hunt opens an escape window; wander targets
+  never pick a cell within 1.5 m of the player; `targetPos` getter added.
+  `src/levels/hold.ts` — investigate speed 1.0 → 0.9 (below walk speed) and a
+  new intro line teaching the escape rule. `src/game/loop.ts` — positional
+  state cues: a low curious grunt on investigate-enter and a soft exhale when
+  a hunt ends ("it lost you"); `playPositional` gains a playbackRate param.
+  `src/audio/sources.ts` + `loop.ts` — the beacon's aiming reward is now a
+  smooth cos² gain curve *and* brightens the occlusion filter (1500 → 5000 Hz)
+  as you face the apparent source, so "aimed at it" is clearly distinct, not
+  just louder.
+- Why: sim traces showed the old rules were mathematically unwinnable —
+  head-on corridor passes let footsteps trigger hunts at 1.35 m/s vs 1.1
+  walk with no escape window (all 8 seeds died at t≈8 s). The aimed wind
+  was also not audibly distinct when occluded.
+- Validation: new `tests/hold.test.ts` — scripted "competent player" (walks
+  the exit path, clicks only when the creature is >8 m away, per the taught
+  heartbeat rule) now wins 8/8 seeds; unit tests for footsteps-never-hunt,
+  mid-hunt re-target suppression, hunt cooldown, and re-hunt after cooldown.
+  Full suite 82/82, `tsc` + `vite build` clean.
+- Limitations: human play remains scarier than the deterministic bot (real
+  players click when they shouldn't); balance validated by simulation, not
+  yet by a fresh blind playtest.

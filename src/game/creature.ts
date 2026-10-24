@@ -16,6 +16,8 @@ export const HEARING = {
   footstep: { stone: 2.5, wood: 3.5, water: 6 } as Record<FloorMaterial, number>,
   huntEnter: 7,
   huntDropSec: 8,
+  /** After a hunt ends it cannot re-enter hunt for this long — the escape window. */
+  huntCooldownSec: 4,
   catchDist: 0.6,
   gracePeriodSec: 6,
 };
@@ -43,6 +45,7 @@ export class Creature {
   private target: { x: number; y: number } | null = null;
   private puppetCell: CellPos | null = null;
   private huntTimer = 0;
+  private huntCooldown = 0;
   private age = 0;
   private rng: () => number;
   private repathCooldown = 0;
@@ -63,6 +66,7 @@ export class Creature {
       },
       huntEnter: this.hearing.huntEnter * 0.6,
       huntDropSec: 5,
+      huntCooldownSec: 5,
       catchDist: this.hearing.catchDist,
       gracePeriodSec: 10,
     };
@@ -80,6 +84,7 @@ export class Creature {
     this.pathIdx = 0;
     this.target = null;
     this.huntTimer = 0;
+    this.huntCooldown = 0;
     this.age = 0;
   }
 
@@ -109,7 +114,8 @@ export class Creature {
     if (this.puppet) return heard;
     this.target = { ...heard };
     this.repathNow(l, ev);
-    if (d <= this.hearing.huntEnter && this.age > this.hearing.gracePeriodSec) {
+    if (d <= this.hearing.huntEnter && this.age > this.hearing.gracePeriodSec
+        && this.huntCooldown <= 0) {
       this.setState('hunt', ev);
       this.huntTimer = this.hearing.huntDropSec;
     } else if (this.state === 'wander') {
@@ -120,24 +126,30 @@ export class Creature {
     return heard;
   }
 
+  /** Where the creature is currently headed (debug/test visibility). */
+  get targetPos(): { x: number; y: number } | null {
+    return this.target;
+  }
+
   /** A footstep on `floor` at the player's position. Same contract as
-   * hearClick — the heard position carries the same Gaussian error rule. */
+   * hearClick — the heard position carries the same Gaussian error rule.
+   * During a hunt the creature is charging too loudly to pinpoint steps:
+   * the step is still "heard" (returned for hunter ripples) but the AI does
+   * NOT re-target — walking away from a charge is the escape. */
   hearFootstep(l: Level, field: BfsField, floor: FloorMaterial, px: number, py: number, ev: CreatureEvents): { x: number; y: number } | null {
     const d = this.distanceTo(field);
     if (d < 0 || d > this.hearing.footstep[floor]) return null;
     const sigma = 0.12 * d;
     const heard = { x: px + gauss(this.rng) * sigma, y: py + gauss(this.rng) * sigma };
     if (this.puppet) return heard;
+    // Steps never trigger a charge — only clicks are loud enough for that.
+    // While investigating, the trail keeps re-targeting so it follows your
+    // steps at walking pace (always slower than you); during a hunt it is
+    // charging too loudly to pinpoint them, so slipping away works.
+    if (this.state === 'hunt') return heard;
     this.target = { ...heard };
     this.repathNow(l, ev);
-    if (d <= this.hearing.huntEnter && this.age > this.hearing.gracePeriodSec) {
-      this.setState('hunt', ev);
-      this.huntTimer = this.hearing.huntDropSec;
-    } else if (this.state === 'wander') {
-      this.setState('investigate', ev);
-    } else if (this.state === 'hunt') {
-      this.huntTimer = this.hearing.huntDropSec;
-    }
+    if (this.state === 'wander') this.setState('investigate', ev);
     return heard;
   }
 
@@ -175,12 +187,13 @@ export class Creature {
       }
     }
     if (cells.length === 0) return;
+    // Never pick a wander cell right next to the player (it would "randomly"
+    // walk into them); during the grace period, stay well clear (4 m).
+    const minR = this.age < this.hearing.gracePeriodSec ? 4 : 1.5;
     let pool = cells;
-    if (this.age < this.hearing.gracePeriodSec) {
-      const away = cells.filter((c) =>
-        Math.hypot(c.col + 0.5 - playerPos.x, c.row + 0.5 - playerPos.y) > 4);
-      if (away.length > 0) pool = away;
-    }
+    const away = cells.filter((c) =>
+      Math.hypot(c.col + 0.5 - playerPos.x, c.row + 0.5 - playerPos.y) > minR);
+    if (away.length > 0) pool = away;
     const t = pool[Math.floor(this.rng() * pool.length)];
     this.target = { x: t.col + 0.5, y: t.row + 0.5 };
     const p = astar(l, { col: Math.floor(this.x), row: Math.floor(this.y) }, t);
@@ -191,6 +204,9 @@ export class Creature {
   update(l: Level, dt: number, px: number, py: number, ev: CreatureEvents): void {
     this.age += dt;
     this.repathCooldown = Math.max(0, this.repathCooldown - dt);
+
+    this.huntCooldown = Math.max(0, this.huntCooldown - dt);
+    const wasHunt = this.state === 'hunt';
 
     if (this.state === 'hunt') {
       this.huntTimer -= dt;
@@ -217,6 +233,12 @@ export class Creature {
     if ((this.state === 'hunt' || this.state === 'investigate') && this.pathIdx >= this.path.length) {
       this.target = null;
       this.setState('wander', ev);
+    }
+
+    // A hunt that just ended — timer ran out or it reached an empty target —
+    // opens an escape window: it cannot re-enter hunt for a few seconds.
+    if (wasHunt && this.state !== 'hunt' && this.state !== 'caught') {
+      this.huntCooldown = this.hearing.huntCooldownSec;
     }
 
     this.catchCheck(px, py, ev);

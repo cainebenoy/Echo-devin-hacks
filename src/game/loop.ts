@@ -55,6 +55,7 @@ export class GameSession {
   private lastEcho: EchoResult | null = null;
   private beacon: PositionalLoop | null = null;
   private breathing: PositionalLoop | null = null;
+  private lastCreatureState: 'wander' | 'investigate' | 'hunt' | 'caught' | null = null;
   private recorder!: Recorder;
   private hintIdx = 0;
   private sensorsFallback = false;
@@ -202,6 +203,17 @@ export class GameSession {
     return {
       onStateChange: (s: 'wander' | 'investigate' | 'hunt' | 'caught') => {
         this.recorder.creatureState(this.runT, s);
+        const prev = this.lastCreatureState;
+        this.lastCreatureState = s;
+        if (!this.creature) return;
+        // "It heard something" — a low curious grunt, distinct from the hunt roar.
+        if (s === 'investigate' && prev === 'wander') {
+          this.playPositional(this.deps.sounds.growl, this.creature.x, this.creature.y, 0.35, 0.7);
+        }
+        // "It gave up" — a soft exhale tells you the escape window is open.
+        if (prev === 'hunt' && (s === 'investigate' || s === 'wander')) {
+          this.playPositional(this.deps.sounds.breathing, this.creature.x, this.creature.y, 0.5);
+        }
       },
       onGrowl: (x: number, y: number) => {
         this.playPositional(this.deps.sounds.growl, x, y, 1);
@@ -213,7 +225,7 @@ export class GameSession {
   }
 
   /** One-shot positional sound through the propagation model. */
-  private playPositional(buf: AudioBuffer, wx: number, wy: number, baseGain: number): void {
+  private playPositional(buf: AudioBuffer, wx: number, wy: number, baseGain: number, rate = 1): void {
     const field = this.currentField();
     if (!field) return;
     const p = propagate(this.level, field, this.player.x, this.player.y, this.player.heading, wx, wy);
@@ -221,6 +233,7 @@ export class GameSession {
     const ctx = this.deps.engine.ctx;
     const src = ctx.createBufferSource();
     src.buffer = buf;
+    src.playbackRate.value = rate;
     const lp = ctx.createBiquadFilter();
     lp.type = 'lowpass';
     lp.frequency.value = p.occluded ? 1500 : 12000;
@@ -356,11 +369,14 @@ export class GameSession {
       const p = propagate(this.level, field,
         this.player.x, this.player.y, this.player.heading,
         e.col + 0.5, e.row + 0.5);
-      // Wind gets clearly stronger when you're aimed at the exit — turn
-      // until it's centered AND fullest, then walk. Kills front/back
-      // confusion that pure HRTF panning can't solve.
-      if (p) this.beacon.update(p.rel, p.distance, p.occluded,
-        Math.abs(p.rel) < 0.6 ? 1.8 : 1);
+      // Aiming reward: the wind swells smoothly and — crucially when the
+      // sound is arriving around a corner — brightens as you face it. Turn
+      // until it's centered AND clearest, then walk. Kills the front/back
+      // ambiguity pure panning can't solve.
+      if (p) {
+        const aim = Math.pow(Math.max(0, Math.cos(p.rel)), 2);
+        this.beacon.update(p.rel, p.distance, p.occluded, 1 + 0.9 * aim, aim);
+      }
     }
 
     this.recorder.tick(this.runT, this.player.x, this.player.y, this.player.heading,

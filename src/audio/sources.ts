@@ -53,8 +53,11 @@ export class PositionalLoop {
   /**
    * rel = apparent world angle minus player heading (rad).
    * Smooth position, gain and filter changes (τ = 0.08 s).
+   * `aim` (0–1) rewards facing the apparent source: an occluded sound opens
+   * up instead of staying a dull thud, so "turned the right way" is clearly
+   * brighter, not just a touch louder.
    */
-  update(rel: number, distance: number, occluded: boolean, extraGain = 1): void {
+  update(rel: number, distance: number, occluded: boolean, extraGain = 1, aim = 0): void {
     const t = this.ctx.currentTime;
     const px = Math.sin(rel);
     const pz = -Math.cos(rel);
@@ -67,7 +70,8 @@ export class PositionalLoop {
     // faintly audible across a long level; breathing (proximity cue) does not.
     const g = Math.max(this.minGain, (this.baseGain * extraGain) / Math.max(1, distance));
     this.gain.gain.setTargetAtTime(g, t, 0.08);
-    this.filter.frequency.setTargetAtTime(occluded ? 1500 : 12000, t, 0.08);
+    const freq = occluded ? 1500 + 3500 * aim : 12000;
+    this.filter.frequency.setTargetAtTime(freq, t, 0.08);
   }
 
   setGain(v: number): void {

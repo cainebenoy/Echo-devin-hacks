@@ -11,13 +11,14 @@ export const hold: LevelDef = {
     clicksEnabled: true,
     beacon: true,
     beaconGain: 0.2,
-    creature: { wander: 0.6, investigate: 1.0, hunt: 1.35 },
+    creature: { wander: 0.6, investigate: 0.9, hunt: 1.35 },
     narration: {
       intro: [
         'The hold of an old ship, docked at Fort Kochi.',
         "Something is down here with you. It can't see either. It hunts by sound.",
         'Every click helps you. Every click helps it.',
         'Your heartbeat tells you how close it is. Its growls tell you which way.',
+        "If it charges, keep walking and don't click — it can't hear your steps while it runs.",
         'Find the hatch.',
       ],
       win: 'You escaped the hold.',
