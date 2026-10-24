@@ -150,8 +150,9 @@ body::after {
   opacity: 0;
   animation: sonar 3s ease-out infinite;
 }
-.sonar i:nth-child(2) { animation-delay: 1s; }
-.sonar i:nth-child(3) { animation-delay: 2s; }
+.sonar i:nth-child(2) { animation-delay: 0.75s; }
+.sonar i:nth-child(3) { animation-delay: 1.5s; }
+.sonar i:nth-child(4) { animation-delay: 2.25s; }
 @keyframes sonar {
   0% { transform: scale(0.3); opacity: 0.5; }
   100% { transform: scale(4); opacity: 0; }
@@ -242,20 +243,45 @@ body::after {
   animation: title-flicker 14s 2s linear infinite;
 }
 /* The ping originates inside the O of the wordmark — the first echo.
-   letter-spacing:0 keeps the span box tight to the glyph so the ring
-   centre lands on the O's counter, not 0.2em right of it. */
-.o { position: relative; display: inline-block; letter-spacing: 0; }
-.o .sonar { left: 50%; top: 50%; }
+   letter-spacing:0 keeps the span box tight to the glyph; line-height:1
+   shrinks it to the cap-height so ~46% lands on the O's ink centre, not
+   the taller line-box middle. */
+.o { position: relative; display: inline-block; letter-spacing: 0; line-height: 1; }
+.o .sonar { left: 50%; top: 46%; }
 .o .sonar i {
   left: -40px;
   top: -40px;
   width: 80px;
   height: 80px;
+  border-color: rgba(103, 232, 249, 0.45);
+  box-shadow: 0 0 10px rgba(103, 232, 249, 0.22);
   animation-name: sonar-o;
 }
+/* Scale stays ≤ 4.2 — a huge ring sweeping the frame edges reads as a
+   rounded-corner box, not a sonar wave. It dissolves while still small
+   enough to read as a circle. */
 @keyframes sonar-o {
-  0% { transform: scale(0.5); opacity: 0.55; }
-  100% { transform: scale(7); opacity: 0; }
+  0% { transform: scale(0.45); opacity: 0.62; }
+  55% { opacity: 0.3; }
+  100% { transform: scale(4.2); opacity: 0; }
+}
+/* A living pulse dot at the O's heart — flashes as each wave is born. */
+.o .sonar .core {
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 12px rgba(103, 232, 249, 0.9);
+  opacity: 0;
+  animation: core-ping 3s ease-out infinite;
+}
+@keyframes core-ping {
+  0% { transform: scale(0.3); opacity: 0.85; }
+  18% { transform: scale(1); opacity: 0.45; }
+  38%, 100% { transform: scale(0.3); opacity: 0; }
 }
 #menu .sonar i {
   border-color: rgba(103, 232, 249, 0.3);
@@ -263,6 +289,8 @@ body::after {
 }
 #menu .sonar i:nth-child(2) { animation-delay: 1.8s; animation-duration: 5.5s; }
 #menu .sonar i:nth-child(3) { animation-delay: 3.6s; animation-duration: 7.4s; }
+#menu .sonar i:nth-child(4) { animation-delay: 5.1s; animation-duration: 6.2s; }
+#menu .sonar .core { animation-duration: 6.8s; }
 #menu .tagline {
   color: var(--dim);
   font-size: 0.95rem;

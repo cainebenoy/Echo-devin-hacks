@@ -41,13 +41,13 @@ function boot(): void {
   app.innerHTML = `
     <div class="fog"></div>
     <div id="boot" class="screen">
-      <h1>ECH<span class="o">O<span class="sonar"><i></i><i></i><i></i></span></span></h1>
+      <h1>ECH<span class="o">O<span class="sonar"><i></i><i></i><i></i><i></i><b class="core"></b></span></span></h1>
       <p>Put on wired earphones.<br>Tap anywhere to begin.</p>
       <p class="code" id="speech-note"></p>
     </div>
     <div id="menu" class="hidden">
       <div class="menu-inner">
-        <h1>ECH<span class="o">O<span class="sonar"><i></i><i></i><i></i></span></span></h1>
+        <h1>ECH<span class="o">O<span class="sonar"><i></i><i></i><i></i><i></i><b class="core"></b></span></span></h1>
         <p class="tagline">A game played in total darkness, by sound alone.</p>
         <p class="howto">Send out a click — its echo paints the room.<br>Knock = wall · Chime = opening · Wind = the way out.</p>
         <div id="level-pick"></div>

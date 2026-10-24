@@ -1,5 +1,26 @@
 # Change log
 
+## 2026-10-25T02:40:00+05:30 — O-ping: alignment, liveliness, no box edge
+
+- Changed: `src/main.ts`, `src/style.css`.
+- Why (user feedback): the sonar ring at `scale(7)` grew to ~560 px and
+  its arcs sweeping the frame edges read as a rounded-corner rectangle
+  "in the back"; the origin also sat at the line-box middle rather than
+  the O's ink centre.
+- Changes:
+  - Ring expansion capped at `scale(4.2)` with a mid-animation fade — it
+    dissolves as a visible arc instead of filling the frame like a box.
+  - `.o` gets `line-height:1` and the ping anchors at `top:46%` — the
+    glyph's optical centre instead of the taller line box's middle.
+  - Added a 4th ring and re-staggered base delays for an even cycle; menu
+    keeps its irregular 5.5–7.4 s periods.
+  - New `.core` pulse dot inside the O — flashes as each wave is born;
+    the origin is now unmistakable and the title feels alive.
+  - Rings carry a soft phosphor `box-shadow` glow.
+- Validation: `npx tsc --noEmit` clean; `vite build` + SW clean.
+- Limitations: ink-centre is an approximation (glyph box ~46%); checked
+  visually across title sizes, ±1–2 px at extremes.
+
 ## 2026-10-25T02:20:00+05:30 — Fix Shift+L board clear
 
 - Changed: `src/spectate/boardui.ts`, `src/spectate/watch.ts`, `src/main.ts`.
