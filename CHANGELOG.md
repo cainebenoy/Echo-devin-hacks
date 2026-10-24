@@ -376,3 +376,14 @@
   non-interactive.
 - Validation: `vite build` clean.
 - Limitations: none.
+
+## 2026-10-25T05:45:00+05:30 — Room code visibility
+
+- Changed: `src/main.ts` — when the spectator connection fails, the corner
+  now reads "spectator off" instead of staying blank (silence was
+  indistinguishable from "code too dim to spot"). `src/style.css` — room
+  code opacity 0.4 → 0.75 and slightly larger so it survives the darker
+  vignette.
+- Validation: `vite build` clean.
+- Limitations: the code still only exists after the boot tap (the channel
+  connects inside the first gesture).

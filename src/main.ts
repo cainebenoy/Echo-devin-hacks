@@ -210,9 +210,10 @@ function boot(): void {
     // Synthesize all sounds (async) while the boot screen fades.
     sounds = await synthesize(engine.ctx);
 
-    // Spectator code (optional; never blocks).
+    // Spectator code (optional; never blocks). Say so when it's off —
+    // silence looked identical to "code too dim to spot".
     void net.connect().then((code) => {
-      if (code) codeEl.textContent = `room ${code}`;
+      codeEl.textContent = code ? `room ${code}` : 'spectator off';
     });
 
     if (!narrator.speechAvailable) {
