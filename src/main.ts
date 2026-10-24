@@ -37,6 +37,7 @@ if (location.pathname === '/watch') {
 function boot(): void {
   // ── DOM scaffold ──────────────────────────────────────────────────────
   app.innerHTML = `
+    <div class="fog"></div>
     <div id="boot" class="screen">
       <div class="sonar"><i></i><i></i><i></i></div>
       <h1>ECHO</h1>
@@ -323,11 +324,52 @@ function boot(): void {
     droneGain.gain.setTargetAtTime(on ? 0.05 : 0, engine.ctx.currentTime, 1.2);
   }
 
+  // ── menu ambience: distant sounds emerging from the dark ────────────
+  let ambientTimer = 0;
+  let ambientOn = false;
+  function scheduleAmbient(): void {
+    clearTimeout(ambientTimer);
+    ambientTimer = window.setTimeout(() => {
+      if (phase === 'menu' && sounds && engine.ready) {
+        const ctx = engine.ctx;
+        const src = ctx.createBufferSource();
+        const g = ctx.createGain();
+        const rel = (Math.random() * 2 - 1) * 2.2;
+        const pick = Math.random();
+        if (pick < 0.5) {
+          // A deep knock — the drip pitched far down.
+          src.buffer = sounds.drip;
+          src.playbackRate.value = 0.55 + Math.random() * 0.35;
+          g.gain.value = 0.06 + Math.random() * 0.07;
+        } else if (pick < 0.82) {
+          // A sigh in the walls.
+          src.buffer = sounds.breathing;
+          src.playbackRate.value = 0.5;
+          g.gain.value = 0.09;
+        } else {
+          // Something far off.
+          src.buffer = sounds.growl;
+          src.playbackRate.value = 0.5 + Math.random() * 0.2;
+          g.gain.value = 0.06;
+        }
+        src.connect(g).connect(engine.stereoAt(rel)).connect(engine.ambienceBus);
+        engine.track(src);
+        src.start();
+      }
+      if (phase === 'menu') scheduleAmbient();
+    }, 4000 + Math.random() * 9000);
+  }
+  function setAmbient(on: boolean): void {
+    if (on && !ambientOn) { ambientOn = true; scheduleAmbient(); }
+    else if (!on) { ambientOn = false; clearTimeout(ambientTimer); }
+  }
+
   // ── audio menu ────────────────────────────────────────────────────────
   function renderLevelPick(): void {
     const show = phase === 'menu';
     menuEl.classList.toggle('hidden', !show);
-    setDrone(show);
+    setDrone(show || phase === 'results');
+    setAmbient(show);
     levelPick.classList.toggle('on', show);
     levelPick.innerHTML = '';
     if (!show) return;

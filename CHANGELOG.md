@@ -352,3 +352,19 @@
 - Why: the panel was supposed to open only via `T`.
 - Validation: `vite build` clean; panel hidden until `T` toggles it.
 - Limitations: none.
+
+## 2026-10-25T05:20:00+05:30 — Deeper horror atmosphere pass
+
+- Changed: `src/style.css` — two large soft shadow masses (`.fog`) that drift
+  slowly across every screen; denser grain (4.5%) and a deeper breathing
+  vignette; faint chromatic edge-split on the ECHO titles; irregular menu
+  sonar rings (three different periods — something circling); slower,
+  dimmer CTA pulse. `src/main.ts` — `.fog` layer added; the room-tone drone
+  now also runs under the results screen; random distant ambience while the
+  menu is up: every 4–13 s a deep knock (pitched-down drip), a sigh, or a
+  far-off growl rumble, panned to a random side via the stereo layer.
+- Why: user wanted the whole site to feel spooky — achieved through
+  darkness, texture and sound (implied presence), no themed decoration.
+- Validation: `tsc` clean; `vite build` clean.
+- Limitations: ambience only on menu/results — never during play, so game
+  cues stay clean.
