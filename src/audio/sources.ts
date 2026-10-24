@@ -17,7 +17,7 @@ export class PositionalLoop {
   /** Set true once started; double-start would throw. */
   started = false;
 
-  constructor(engine: Engine, buffer: AudioBuffer, baseGain: number, bus?: GainNode) {
+  constructor(engine: Engine, buffer: AudioBuffer, baseGain: number, bus?: GainNode, private minGain = 0) {
     this.ctx = engine.ctx;
     this.baseGain = baseGain;
     this.src = this.ctx.createBufferSource();
@@ -57,7 +57,9 @@ export class PositionalLoop {
     const pz = -Math.cos(rel);
     this.panner.positionX.setTargetAtTime(px, t, 0.08);
     this.panner.positionZ.setTargetAtTime(pz, t, 0.08);
-    const g = (this.baseGain * extraGain) / Math.max(1, distance);
+    // 1/d rolloff with an optional audibility floor — the beacon must stay
+    // faintly audible across a long level; breathing (proximity cue) does not.
+    const g = Math.max(this.minGain, (this.baseGain * extraGain) / Math.max(1, distance));
     this.gain.gain.setTargetAtTime(g, t, 0.08);
     this.filter.frequency.setTargetAtTime(occluded ? 1500 : 12000, t, 0.08);
   }

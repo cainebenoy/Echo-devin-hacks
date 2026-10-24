@@ -144,3 +144,16 @@
 - Validation: `tsc` clean; 54/54 tests; `vite build` clean.
 - Limitations: forward-focus + chime are playability additions to the spec's
   equal-bin model, documented in NOTES.md.
+
+## 2026-10-24T23:05:00+05:30 — Level audit + beacon audibility floor
+
+- Changed: `src/audio/sources.ts`, `src/game/loop.ts` — optional min-gain
+  floor on PositionalLoop; beacon floors at 15% of base gain so the
+  wayfinding cue survives long levels.
+- Why: scripted level audit showed every map is completable (paths
+  collision-free), but the beacon dropped to ~0.01–0.03 at distance —
+  effectively silent in Corridor/Godown/Hold.
+- Validation: audit script output (all paths exist, 0 blocked waypoints);
+  `tsc` clean; 54/54 tests; clean build.
+- Limitations: floor keeps gain flat beyond ~12m; directionality is still
+  encoded by the panner.

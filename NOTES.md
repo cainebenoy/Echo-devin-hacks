@@ -86,3 +86,12 @@ to the opening's direction, so sweeping produces "tick-tick-whoosh" instead of
 "silence vs slightly less sound". In visual/testing mode the menu also shows
 a clickable level picker with all levels unlocked so testing doesn't require
 replaying from Level 1.
+
+### Beacon audibility floor
+
+Spec's positional-source gain `base / max(1, distance)` made the beacon
+nearly inaudible at long path distances (Godown/Hold ~0.01–0.03 at 15–18 m),
+removing the only wayfinding cue. PositionalLoop now takes an optional
+audibility floor; the beacon uses `baseGain * 0.15`, keeping it faintly
+present everywhere. Breathing intentionally has no floor — it must fade with
+distance to telegraph creature proximity.

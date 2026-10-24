@@ -93,6 +93,9 @@ export class GameSession {
     if (level.meta.beacon && level.exits.length > 0) {
       this.beacon = new PositionalLoop(
         this.deps.engine, this.deps.sounds.beacon, level.meta.beaconGain, this.deps.engine.ambienceBus,
+        // Audibility floor: the beacon is the wayfinding cue, so it stays
+        // faintly present even across the longest level.
+        level.meta.beaconGain * 0.15,
       );
       this.beacon.start();
     }
