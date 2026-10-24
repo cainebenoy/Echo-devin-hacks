@@ -1,5 +1,22 @@
 # Change log
 
+## 2026-10-25T02:55:00+05:30 — O-ping polish: em-centred, emitting O
+
+- Changed: `src/style.css`.
+- Why (user repeat ask): tighten the ring origin and make the emission
+  feel alive, not just circles.
+- Changes:
+  - Ping anchor is now `top: 0.45em` (font-relative) — lands on the O's
+    ink centre at any title size instead of a fixed %.
+  - Rings start bright cyan (`0.8` alpha border) and dim as they expand —
+    waves look emitted, not static.
+  - New `o-emit` keyframe on `.o`: the O flashes brighter for ~30% of each
+    primary wave's cycle — the letter visibly emits the echo. Synced to
+    the 3 s boot ping and 6.8 s menu ping.
+- Validation: `npx tsc --noEmit` clean; `vite build` + SW clean.
+- Limitations: if the site still shows old rings it's a stale service
+  worker — closing all tabs or clearing site data once forces takeover.
+
 ## 2026-10-25T02:40:00+05:30 — O-ping: alignment, liveliness, no box edge
 
 - Changed: `src/main.ts`, `src/style.css`.

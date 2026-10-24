@@ -246,8 +246,12 @@ body::after {
    letter-spacing:0 keeps the span box tight to the glyph; line-height:1
    shrinks it to the cap-height so ~46% lands on the O's ink centre, not
    the taller line-box middle. */
+/* The ping originates inside the O of the wordmark — the first echo.
+   letter-spacing:0 keeps the span box tight to the glyph; line-height:1
+   shrinks it to the cap-height. The anchor is em-based so it lands on the
+   O's ink centre at every font size (~0.45em above the box top). */
 .o { position: relative; display: inline-block; letter-spacing: 0; line-height: 1; }
-.o .sonar { left: 50%; top: 46%; }
+.o .sonar { left: 50%; top: 0.45em; }
 .o .sonar i {
   left: -40px;
   top: -40px;
@@ -259,9 +263,9 @@ body::after {
 }
 /* Scale stays ≤ 4.2 — a huge ring sweeping the frame edges reads as a
    rounded-corner box, not a sonar wave. It dissolves while still small
-   enough to read as a circle. */
+   enough to read as a circle, bright at birth and dimming as it travels. */
 @keyframes sonar-o {
-  0% { transform: scale(0.45); opacity: 0.62; }
+  0% { transform: scale(0.45); opacity: 0.62; border-color: rgba(103, 232, 249, 0.8); }
   55% { opacity: 0.3; }
   100% { transform: scale(4.2); opacity: 0; }
 }
@@ -282,6 +286,24 @@ body::after {
   0% { transform: scale(0.3); opacity: 0.85; }
   18% { transform: scale(1); opacity: 0.45; }
   38%, 100% { transform: scale(0.3); opacity: 0; }
+}
+/* The O itself flashes as it emits — the letter is the source. */
+.o { animation: o-emit 3s ease-out infinite; }
+#menu .o { animation-duration: 6.8s; }
+@keyframes o-emit {
+  0% {
+    text-shadow:
+      0 0 22px rgba(103, 232, 249, 0.85),
+      0 0 46px rgba(103, 232, 249, 0.4),
+      1.5px 0 0 rgba(255, 70, 70, 0.07),
+      -1.5px 0 0 rgba(60, 180, 255, 0.07);
+  }
+  30%, 100% {
+    text-shadow:
+      0 0 40px rgba(103, 232, 249, 0.3),
+      1.5px 0 0 rgba(255, 70, 70, 0.07),
+      -1.5px 0 0 rgba(60, 180, 255, 0.07);
+  }
 }
 #menu .sonar i {
   border-color: rgba(103, 232, 249, 0.3);
