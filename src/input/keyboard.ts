@@ -1,13 +1,14 @@
 /**
  * Desktop input — development and the backup demo.
  * Space click, W/S walk, A/D or pointer-lock mouse turn, H hint, Esc pause,
- * backquote toggles debug.
+ * backquote toggles the debug map, T toggles the tuning panel.
  */
 export interface KeyboardHandlers {
   onClick(): void;
   onHint(): void;
   onPause(): void;
   onDebugToggle(): void;
+  onTuningToggle?(): void;
   onSkipSpeech?(): void;
   onToggleVoice?(): void;
 }
@@ -33,6 +34,7 @@ export class KeyboardInput {
       else if (e.code === 'KeyH') this.handlers.onHint();
       else if (e.code === 'Escape') this.handlers.onPause();
       else if (e.code === 'Backquote') this.handlers.onDebugToggle();
+      else if (e.code === 'KeyT') this.handlers.onTuningToggle?.();
       else if (e.code === 'Enter') this.handlers.onSkipSpeech?.();
       else if (e.code === 'KeyM') this.handlers.onToggleVoice?.();
     };

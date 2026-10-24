@@ -100,11 +100,8 @@ function boot(): void {
     },
     onHint: () => { if (phase === 'playing') session?.hint(); },
     onPause: () => togglePause(),
-    onDebugToggle: () => {
-      // In visual mode the map is always on; ` toggles the tuning panel only.
-      if (!visual) overlay.toggle();
-      tuningPanel.toggle();
-    },
+    onDebugToggle: () => overlay.toggle(),
+    onTuningToggle: () => tuningPanel.toggle(),
     onSkipSpeech: () => narrator.clear(),
     onToggleVoice: () => {
       const m = narrator.toggleMuted();
@@ -134,7 +131,7 @@ function boot(): void {
     if (keys && visual) {
       const k = document.createElement('span');
       k.className = 'keys';
-      k.textContent = 'Space click · W/S walk · A/D turn · H hint · M voice · Esc pause · ` tuning';
+      k.textContent = 'Space click · W/S walk · A/D turn · H hint · M voice · Esc pause · ` map · T tuning';
       statusEl.appendChild(k);
     }
     statusEl.classList.toggle('on', !!text && visual);
@@ -323,8 +320,7 @@ function boot(): void {
     const locked = !visual && !(l.meta.order <= progress.unlocked || progress.finishedAll);
     setStatus(`Level ${l.meta.order}: ${l.meta.name}${assist ? ' · calm' : ''}`);
     renderLevelPick();
-    if (visual) {
-      overlay.show(true);
+    if (overlay.visible) {
       overlay.render(l, {}, engine.ready ? engine : null, { menu: locked ? 'locked' : 'unlocked' });
     }
   }
@@ -355,7 +351,6 @@ function boot(): void {
     phase = 'playing';
     renderLevelPick();
     setStatus(`Level ${level.meta.order} — ${level.meta.name}`, true);
-    if (visual) overlay.show(true);
     session = new GameSession({
       engine,
       sounds,

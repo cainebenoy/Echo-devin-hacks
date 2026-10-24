@@ -248,3 +248,13 @@
   stat chips + room code + caption all floating at once.
 - Validation: `tsc` clean; 78/78 tests; `vite build` clean.
 - Limitations: none.
+
+## 2026-10-25T02:30:00+05:30 — Debug map hidden by default
+
+- Changed: `src/main.ts` — overlay no longer force-shown at menu or level
+  start; it opens only via ` (backquote) or `?debug=1`. Menu map preview
+  renders only while the overlay is open. `src/input/keyboard.ts` — tuning
+  panel moved to its own key (T) so ` gives just the map.
+- Why: the always-on debug HUD cluttered the screen when not needed.
+- Validation: `tsc` clean; 78/78 tests; `vite build` clean.
+- Limitations: none.
