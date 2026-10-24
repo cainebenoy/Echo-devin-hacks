@@ -381,3 +381,65 @@ html, body {
   cursor: pointer;
 }
 #tuning-panel button:hover { background: rgba(103, 232, 249, 0.16); }
+
+/* ── /draw — room editor ───────────────────────────────────────────────── */
+body.draw {
+  display: flex; align-items: flex-start; justify-content: center;
+  min-height: 100vh; overflow-y: auto; padding: 24px 12px;
+}
+.draw-wrap { width: min(92vw, 640px); display: flex; flex-direction: column; gap: 14px; }
+.draw-wrap h1 {
+  font-weight: 200; letter-spacing: 0.35em; color: var(--cyan, #67e8f9);
+  text-align: center; margin: 0; font-size: clamp(1.3rem, 4vw, 1.8rem);
+}
+.draw-sub { color: var(--dim, #7d8ba0); text-align: center; font-size: 13px; margin: 0; }
+.draw-top { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.draw-top input[type="text"], .draw-top input:not([type]), .draw-top input[maxlength="48"] {
+  flex: 1; min-width: 160px; background: #0a0e16; border: 1px solid rgba(103,232,249,0.25);
+  color: #e8f4ff; padding: 8px 10px; border-radius: 6px; font-family: inherit; font-size: 13px;
+}
+.draw-top label { color: var(--dim, #7d8ba0); font-size: 12px; display: flex; align-items: center; gap: 4px; }
+.draw-top input[type="number"] {
+  width: 52px; background: #0a0e16; border: 1px solid rgba(103,232,249,0.25);
+  color: #e8f4ff; padding: 6px; border-radius: 6px; font-family: inherit;
+}
+.palette { display: flex; gap: 6px; flex-wrap: wrap; }
+.palette button, .draw-actions button, .share-row button, .draw-recent button {
+  background: rgba(103,232,249,0.08); border: 1px solid rgba(103,232,249,0.25);
+  color: #e8f4ff; padding: 7px 12px; border-radius: 6px; cursor: pointer;
+  font-family: inherit; font-size: 12px; letter-spacing: 0.04em;
+}
+.palette button::before {
+  content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+  background: var(--sw); margin-right: 6px; vertical-align: -1px;
+}
+.palette button.sel { border-color: var(--cyan, #67e8f9); background: rgba(103,232,249,0.18); }
+.palette button:hover, .draw-actions button:hover, .share-row button:hover, .draw-recent button:hover {
+  background: rgba(103,232,249,0.16);
+}
+button.primary { border-color: #57cc99; background: rgba(87,204,153,0.14); }
+button:disabled { opacity: 0.35; cursor: not-allowed; }
+#d-canvas {
+  width: 100%; border: 1px solid rgba(103,232,249,0.3); border-radius: 8px;
+  touch-action: none; cursor: crosshair; display: block;
+}
+.draw-status { font-size: 13px; letter-spacing: 0.06em; min-height: 1.2em; }
+.draw-status.ok { color: #57cc99; }
+.draw-status.bad { color: #f2a154; }
+.draw-actions { display: flex; gap: 8px; }
+.draw-share { display: flex; flex-direction: column; gap: 10px; }
+.share-row { display: flex; gap: 8px; align-items: center; }
+.share-row input {
+  flex: 1; background: #0a0e16; border: 1px solid rgba(103,232,249,0.25);
+  color: #9fd8e8; padding: 8px 10px; border-radius: 6px; font-family: monospace; font-size: 11px;
+}
+#d-qr {
+  align-self: center; border: 1px solid rgba(103,232,249,0.25); border-radius: 8px;
+  background: #05070d; padding: 6px;
+}
+#d-sendrow.hidden { display: none; }
+.err { color: #f2a154; font-size: 12px; }
+.draw-recent h3 { color: var(--dim, #7d8ba0); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500; }
+.draw-recent div { display: flex; gap: 6px; flex-wrap: wrap; }
+.draw-recent button { font-size: 11px; padding: 5px 10px; }
+.draw-back a { color: var(--cyan, #67e8f9); text-decoration: none; font-size: 13px; }

@@ -85,6 +85,7 @@ export class ResultsScreen {
       `<div><b>${rec.clicks}</b><span>clicks</span></div>`,
       `<div><b>${rec.bumps}</b><span>bumps</span></div>`,
       `<div><b>${approach}</b><span>closest</span></div>`,
+      ...(rec.hunted ? [`<div><b>Hunted</b><span>by a person</span></div>`] : []),
     ].join('');
     this.nextBtn.style.display = canNext ? '' : 'none';
     this.playT = 0;

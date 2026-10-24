@@ -15,6 +15,10 @@ import { loadProgress, saveProgress, type GamePhase, type Progress } from './gam
 import { ResultsScreen } from './replay/results';
 import { SpectateNet } from './spectate/net';
 import { startWatchPage } from './spectate/watch';
+import { startDrawPage } from './draw/editor';
+import { HunterLink, type HunterMsg } from './game/hunter';
+import { decodeCustom, customDef, validateCustomMap, STATUS_TEXT } from './custom/codec';
+import { parseLevel } from './world/level';
 import { DebugOverlay } from './debug/overlay';
 import { TuningPanel } from './debug/tuning';
 import type { Recording } from './replay/recorder';
@@ -24,6 +28,8 @@ const app = document.getElementById('app')!;
 
 if (location.pathname === '/watch') {
   startWatchPage(app);
+} else if (location.pathname === '/draw') {
+  startDrawPage(app);
 } else {
   boot();
 }
@@ -60,6 +66,15 @@ function boot(): void {
   const orientation = new OrientationTracker();
   const steps = new StepDetector();
   const net = new SpectateNet();
+  const hunterLink = new HunterLink();
+  /** A drawn room broadcast to this room's channel, waiting for the player. */
+  let pendingCustom: string | null = null;
+  net.onHunter = (m) => handleHunterMsg(m as HunterMsg);
+  net.onLevelCustom = (data) => {
+    pendingCustom = data;
+    // Never interrupts a run — announced when the player can accept.
+    if (phase !== 'playing' && phase !== 'boot') offerPendingCustom();
+  };
   const gestures = new GestureRecognizer(handleGesture);
   let sounds: SoundSet | null = null;
   let session: GameSession | null = null;
@@ -198,12 +213,65 @@ function boot(): void {
 
     const levelParam = params.get('level');
     const direct = levelParam ? getLevel(levelParam) : null;
-    if (direct) {
+    const customParam = params.get('custom');
+    if (customParam) {
+      // QR/link path: decode → validate → play, or stay on menu with an error.
+      const payload = decodeCustom(customParam);
+      const v = payload ? validateCustomMap(payload.map) : null;
+      if (payload && v && v.status === 'ready') {
+        try {
+          startLevel(parseLevel(customDef(payload)));
+        } catch {
+          setStatus('That room link did not load — pick a level below');
+          enterMenu();
+        }
+      } else {
+        setStatus(v ? STATUS_TEXT[v.status] : 'That room link did not work');
+        enterMenu();
+      }
+    } else if (direct) {
       // ?level=<id> jumps straight in for the demo — bypasses the lock.
       startLevel(direct);
     } else {
       enterMenu();
     }
+  }
+
+  // ── hunter mode: remote human drives the creature via this link ──────
+  function handleHunterMsg(m: HunterMsg): void {
+    const now = performance.now();
+    if (m.t === 'claim') {
+      net.hunterAck(m.id, hunterLink.claim(m.id, now) === 'accepted');
+    } else if (m.t === 'release') {
+      hunterLink.release(m.id);
+    } else if (m.t === 'target') {
+      hunterLink.onTarget(m.id, m.col, m.row, now);
+    }
+  }
+
+  // ── drawn rooms received over the room channel ────────────────────────
+  function offerPendingCustom(): void {
+    setStatus('A new room has been drawn for you — tap to enter');
+    narrator.say('A new room has been drawn for you. Tap to enter.');
+  }
+
+  function acceptPendingCustom(): boolean {
+    if (!pendingCustom) return false;
+    const payload = decodeCustom(pendingCustom);
+    pendingCustom = null;
+    if (!payload) {
+      setStatus('That room could not be loaded');
+      return false;
+    }
+    const v = validateCustomMap(payload.map);
+    if (v.status !== 'ready') {
+      setStatus(STATUS_TEXT[v.status]);
+      return false;
+    }
+    results.hide();
+    session?.stop();
+    startLevel(parseLevel(customDef(payload)));
+    return true;
   }
 
   // ── audio menu ────────────────────────────────────────────────────────
@@ -234,6 +302,10 @@ function boot(): void {
       renderLevelPick();
     };
     levelPick.appendChild(calm);
+    const draw = document.createElement('button');
+    draw.textContent = '✎ Draw a room';
+    draw.onclick = () => { location.href = '/draw'; };
+    levelPick.appendChild(draw);
   }
 
   function menuStatus(): void {
@@ -286,6 +358,7 @@ function boot(): void {
       overlay,
       isTouch,
       assist,
+      hunter: hunterLink,
       onEnd: onRunEnd,
     });
     session.start(level);
@@ -297,7 +370,7 @@ function boot(): void {
     setStatus(outcome === 'win' ? 'Results — escaped' : 'Results — caught');
     if (visual) overlay.show(false);
     const l = currentLevel!;
-    if (outcome === 'win') {
+    if (outcome === 'win' && l.meta.order < 90) {
       progress.unlocked = Math.max(progress.unlocked, Math.min(levels.length, l.meta.order + 1));
       if (l.meta.order >= levels.length) progress.finishedAll = true;
       saveProgress(progress);
@@ -340,6 +413,7 @@ function boot(): void {
         void firstTap();
         break;
       case 'menu': {
+        if (e.type === 'tap' && acceptPendingCustom()) break;
         if (e.type === 'swipe') {
           if (e.dir === 'left' || e.dir === 'right') {
             menuIdx = (menuIdx + (e.dir === 'right' ? -1 : 1) + levels.length) % levels.length;
@@ -363,6 +437,7 @@ function boot(): void {
         }
         break;
       case 'paused':
+        if (e.type === 'tap' && acceptPendingCustom()) break;
         if (e.type === 'tap') resume();
         else if (e.type === 'swipe' && e.dir === 'down') { session?.stop(); if (currentLevel) startLevel(currentLevel); }
         else if (e.type === 'swipe' && e.dir === 'up') { session?.stop(); session = null; enterMenu(); }
@@ -372,6 +447,7 @@ function boot(): void {
         }
         break;
       case 'results': {
+        if (e.type === 'tap' && acceptPendingCustom()) break;
         if (!lastRec || !currentLevel) break;
         const won = lastRec.outcome === 'win';
         if (e.type === 'tap') {

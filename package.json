@@ -11,12 +11,15 @@
     "screenshots": "esbuild scripts/screenshots.ts --bundle --format=esm --platform=node --outfile=scripts/.screenshots.mjs && node scripts/.screenshots.mjs"
   },
   "devDependencies": {
+    "@types/qrcode": "^1.5.5",
     "typescript": "^5.6.3",
     "vite": "^5.4.10",
     "vite-plugin-pwa": "^0.21.1",
     "vitest": "^2.1.4"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.46.1"
+    "@supabase/supabase-js": "^2.46.1",
+    "fflate": "^0.8.2",
+    "qrcode": "^1.5.4"
   }
 }

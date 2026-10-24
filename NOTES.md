@@ -95,3 +95,32 @@ removing the only wayfinding cue. PositionalLoop now takes an optional
 audibility floor; the beacon uses `baseGain * 0.15`, keeping it faintly
 present everywhere. Breathing intentionally has no floor — it must fade with
 distance to telegraph creature proximity.
+
+## Batch D — Draw a Room + Hunter Mode
+
+### Footstep hearing error (intentional unification)
+
+Spec D2 requires hunter ripples to show "the heard position … same error
+rule" for both clicks and footsteps, and the D2 test requires ripples to
+equal what the AI perceives. `hearFootstep` now applies the same Gaussian
+error (σ = 0.12 × path distance) as `hearClick`, and both methods return the
+heard position so the broadcast ripple is exactly the AI's perceived target.
+Effect on existing play: the creature's footstep target is slightly noisy
+rather than pixel-exact — a small, favourable change that makes Hold
+marginally more forgiving. Documented per the hard rule.
+
+### Custom room format
+
+`?custom=` carries the map + name + beacon toggle as deflate→base64url JSON.
+Everything else (rt60, spawn heading, creature profile, narration) is
+regenerated deterministically from the map, which keeps links small enough
+for QR. Malformed data decodes to null and never reaches the parser.
+
+### Hunter authority
+
+The phone owns all physics: hunter messages are target cells only, capped at
+10 msg/s client-side AND phone-side (token bucket). AI resumes silently after
+5 s of hunter silence and yields again on the next message. Claims persist
+across level transitions so a hunter who joins during the menu is announced
+in the Hold intro; a stale claim (>10 s silent) can be reclaimed by a new
+hunter.

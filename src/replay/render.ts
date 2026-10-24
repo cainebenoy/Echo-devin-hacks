@@ -17,6 +17,8 @@ export interface RenderState {
   rays?: { x: number; y: number }[] | null;
   /** Creature's current target (debug overlay). */
   creatureTarget?: { x: number; y: number } | null;
+  /** Hunter fog view: where the creature heard something (fades ~3 s). */
+  ripples?: { x: number; y: number; age: number; kind: 'click' | 'step' }[];
 }
 
 const STATE_COLORS: Record<CreatureState, string> = {
@@ -105,6 +107,19 @@ export function renderMap(canvas: HTMLCanvasElement, level: Level, state: Render
         ctx.arc(X(h.x), Y(h.y), Math.max(1.5, scale * 0.12), 0, Math.PI * 2);
         ctx.fill();
       }
+    }
+  }
+
+  // Hunter ripples — heard sounds fading over ~3 s.
+  if (state.ripples) {
+    for (const rp of state.ripples) {
+      const a = Math.max(0, 1 - rp.age / 3);
+      const rad = scale * (0.5 + rp.age * 1.2) * (rp.kind === 'click' ? 1 : 0.55);
+      ctx.strokeStyle = `rgba(242,161,84,${0.7 * a})`;
+      ctx.lineWidth = rp.kind === 'click' ? 2.5 : 1.5;
+      ctx.beginPath();
+      ctx.arc(X(rp.x), Y(rp.y), rad, 0, Math.PI * 2);
+      ctx.stroke();
     }
   }
 

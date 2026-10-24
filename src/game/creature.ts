@@ -36,9 +36,12 @@ export class Creature {
   speeds = { wander: 0.6, investigate: 1.0, hunt: 1.35 };
   /** Effective hearing/speed profile — assist mode scales these down. */
   hearing = { ...HEARING, footstep: { ...HEARING.footstep } };
+  /** True while a human hunter drives movement — AI decision-making off. */
+  puppet = false;
   private path: CellPos[] = [];
   private pathIdx = 0;
   private target: { x: number; y: number } | null = null;
+  private puppetCell: CellPos | null = null;
   private huntTimer = 0;
   private age = 0;
   private rng: () => number;
@@ -92,12 +95,19 @@ export class Creature {
     return fieldDist(field, Math.floor(this.x), Math.floor(this.y));
   }
 
-  /** A click was made at the player's position. */
-  hearClick(l: Level, field: BfsField, px: number, py: number, ev: CreatureEvents): void {
+  /**
+   * A click was made at (px,py). Returns the heard position (with Gaussian
+   * error) when in range, null otherwise — the same reveal the hunter's
+   * ripple shows. When `puppet` (a human hunter drives the creature) the
+   * AI does not react; the return value is still produced for the ripple.
+   */
+  hearClick(l: Level, field: BfsField, px: number, py: number, ev: CreatureEvents): { x: number; y: number } | null {
     const d = this.distanceTo(field);
-    if (d < 0 || d > this.hearing.click) return;
+    if (d < 0 || d > this.hearing.click) return null;
     const sigma = 0.12 * d;
-    this.target = { x: px + gauss(this.rng) * sigma, y: py + gauss(this.rng) * sigma };
+    const heard = { x: px + gauss(this.rng) * sigma, y: py + gauss(this.rng) * sigma };
+    if (this.puppet) return heard;
+    this.target = { ...heard };
     this.repathNow(l, ev);
     if (d <= this.hearing.huntEnter && this.age > this.hearing.gracePeriodSec) {
       this.setState('hunt', ev);
@@ -107,13 +117,18 @@ export class Creature {
     } else if (this.state === 'hunt') {
       this.huntTimer = this.hearing.huntDropSec;
     }
+    return heard;
   }
 
-  /** A footstep on `floor` at the player's position. */
-  hearFootstep(l: Level, field: BfsField, floor: FloorMaterial, px: number, py: number, ev: CreatureEvents): void {
+  /** A footstep on `floor` at the player's position. Same contract as
+   * hearClick — the heard position carries the same Gaussian error rule. */
+  hearFootstep(l: Level, field: BfsField, floor: FloorMaterial, px: number, py: number, ev: CreatureEvents): { x: number; y: number } | null {
     const d = this.distanceTo(field);
-    if (d < 0 || d > this.hearing.footstep[floor]) return;
-    this.target = { x: px, y: py };
+    if (d < 0 || d > this.hearing.footstep[floor]) return null;
+    const sigma = 0.12 * d;
+    const heard = { x: px + gauss(this.rng) * sigma, y: py + gauss(this.rng) * sigma };
+    if (this.puppet) return heard;
+    this.target = { ...heard };
     this.repathNow(l, ev);
     if (d <= this.hearing.huntEnter && this.age > this.hearing.gracePeriodSec) {
       this.setState('hunt', ev);
@@ -123,6 +138,7 @@ export class Creature {
     } else if (this.state === 'hunt') {
       this.huntTimer = this.hearing.huntDropSec;
     }
+    return heard;
   }
 
   private repathNow(l: Level, ev: CreatureEvents): void {
@@ -194,6 +210,19 @@ export class Creature {
     const speed = this.state === 'hunt' ? this.speeds.hunt
       : this.state === 'investigate' ? this.speeds.investigate
       : this.speeds.wander;
+    this.followPath(dt, speed);
+
+    // Reached the end of the chase/investigation path with nothing found →
+    // back to wandering instead of standing still ("stuck" bug).
+    if ((this.state === 'hunt' || this.state === 'investigate') && this.pathIdx >= this.path.length) {
+      this.target = null;
+      this.setState('wander', ev);
+    }
+
+    this.catchCheck(px, py, ev);
+  }
+
+  private followPath(dt: number, speed: number): void {
     let remaining = speed * dt;
     while (remaining > 0 && this.pathIdx < this.path.length) {
       const wp = pos(this.path[this.pathIdx]);
@@ -207,18 +236,53 @@ export class Creature {
       remaining -= step;
       if (step >= d - 1e-9) this.pathIdx++;
     }
+  }
 
-    // Reached the end of the chase/investigation path with nothing found →
-    // back to wandering instead of standing still ("stuck" bug).
-    if ((this.state === 'hunt' || this.state === 'investigate') && this.pathIdx >= this.path.length) {
-      this.target = null;
-      this.setState('wander', ev);
-    }
-
-    // Catch check.
+  private catchCheck(px: number, py: number, ev: CreatureEvents): void {
     if (this.state !== 'caught' && Math.hypot(this.x - px, this.y - py) < this.hearing.catchDist) {
       this.setState('caught', ev);
       ev.onCatch();
     }
+  }
+
+  /**
+   * Hunter-driven movement: walk the creature toward `cell` by A* at the
+   * `investigate` speed, or `hunt` speed when `close` (target within 7 m
+   * path distance of the player). With no target the creature holds its
+   * ground. Catch check still applies — physics stays on the phone.
+   */
+  driveTo(l: Level, cell: CellPos | null, dt: number, close: boolean, px: number, py: number, ev: CreatureEvents): void {
+    this.puppet = true;
+    if (this.state === 'caught') return;
+    if (!cell) {
+      this.path = [];
+      this.pathIdx = 0;
+      this.puppetCell = null;
+      this.setState('investigate', ev);
+      return;
+    }
+    if (!this.puppetCell || this.puppetCell.col !== cell.col || this.puppetCell.row !== cell.row) {
+      this.puppetCell = { ...cell };
+      const from = { col: Math.floor(this.x), row: Math.floor(this.y) };
+      const p = astar(l, from, cell) ?? astar(l, from, this.nearestWalkable(l, cell));
+      this.path = p ?? [];
+      this.pathIdx = 0;
+    }
+    this.setState(close ? 'hunt' : 'investigate', ev);
+    this.followPath(dt, close ? this.speeds.hunt : this.speeds.investigate);
+    this.catchCheck(px, py, ev);
+  }
+
+  /** Catch check against the live player position (puppet + AI paths). */
+  checkCatch(px: number, py: number, ev: CreatureEvents): void {
+    this.catchCheck(px, py, ev);
+  }
+
+  /** Leave puppet mode — the AI takes over again seamlessly. */
+  releasePuppet(ev: CreatureEvents): void {
+    this.puppet = false;
+    this.puppetCell = null;
+    this.target = null;
+    this.setState('wander', ev);
   }
 }

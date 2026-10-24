@@ -38,7 +38,7 @@ Built for **Devin Hack Kochi** (see
    them.
 4. Start: `npm run dev` (desktop backup demo: `Space` click, `W` walk, `A`/`D`
    turn, `H` hint, `Esc` pause, `` ` `` debug overlay).
-5. Checks: `npm test` (54 unit tests), `npm run build` (typecheck + PWA build).
+5. Checks: `npm test` (78 unit tests), `npm run build` (typecheck + PWA build).
 6. Screenshots: `npm run screenshots` regenerates `screenshots/` from the real
    level maps and echo model.
 
@@ -51,7 +51,10 @@ Built for **Devin Hack Kochi** (see
   narration queue with offline-voice preference and caption+earcon fallback,
   creature AI (wander/investigate/hunt/catch), 10 Hz run recorder, results
   screen with scrub-able replay, `/watch` spectator view, PWA offline, wake
-  lock, walk-in-place step detection.
+  lock, walk-in-place step detection, `/draw` room editor (QR/link/Supabase
+  delivery, last-5 local rooms) and `/watch?role=hunter` hunter mode where a
+  second person drives the creature through a fogged map (`V` toggles the
+  fog on the projector).
 - **Known limitations:** portrait lock is best-effort (unsupported on iOS
   Safari); speech depends on device voices (fallback mode documented in
   NOTES.md); Vercel deploy not yet performed (requires `vercel login`);

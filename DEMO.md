@@ -30,3 +30,28 @@
   `Esc` = pause, `` ` `` = debug overlay (rays, bins, audio stats, tuning
   sliders).
 - A pre-recorded run video covers total network/device failure.
+
+## Draw a room (Batch D)
+
+1. Judge B opens `https://<deploy>/draw` on any device.
+2. Paint a room: walls/materials/water, exactly one Start, exits on the edge,
+   optional Creature. The status line turns **Ready** when it's solvable.
+3. Get it to the player, any of:
+   - **Play here** — starts it on the same device immediately.
+   - **QR / link** — the encoded `?custom=` URL; works fully offline.
+   - **Send to phone** — enter the phone's 4-digit room code; the phone
+     narrates "A new room has been drawn for you. Tap to enter." at the menu,
+     results screen or pause menu (never mid-run).
+
+## Hunter mode (Batch D)
+
+1. Phone in the room, room code visible. Needs a creature level (`?level=hold`
+   or a drawn room with `C`).
+2. Judge B opens `https://<deploy>/watch`, enters the code, clicks **Hunt the
+   player** — they get a fogged map: walls, water, the creature, and fading
+   ripples where it heard sounds. The player is invisible.
+3. Tapping the map sends a target cell; the creature A*-walks there at
+   investigate speed (hunt speed when the target is within 7 m of the
+   player). If the hunter goes quiet for 5 s the AI silently takes back over.
+4. Projector trick: `V` toggles the fog on a spectator `/watch`, so one
+   laptop can show the hunter's view. Results show "Hunted by a person".

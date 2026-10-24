@@ -200,3 +200,37 @@
 - Validation: `tsc` clean; 54/54 tests; `vite build` clean; echotest dump
   shows ±15° bins near-silent (amp ≤0.02) when facing the gap.
 - Limitations: none known; notch width tuned for tutorial forgiveness.
+
+## 2026-10-25T01:30:00+05:30 — Batch D: Draw a Room + Hunter Mode
+
+- Added `src/custom/codec.ts` — drawn-room codec (deflate→base64url in
+  `?custom=`), deterministic meta generation (rt60 from size, spawn heading
+  facing away from nearest exit, calm creature profile, fixed narration) and
+  parser+BFS validation statuses.
+- Added `src/draw/editor.ts` — `/draw` grid editor (16×12 default, 10–24 ×
+  8–16), stone border with exit exceptions, 8-tool palette, click/drag
+  painting (mouse+touch), undo + Ctrl+Z, clear, live validation, Play-here,
+  QR/link sharing (qrcode lib), Supabase `levelCustom` send, last-5 recents.
+- Added `src/game/hunter.ts` — HunterLink phone-side authority: claim/busy,
+  10 msg/s token bucket, 5 s silence → AI hand-back, stale-claim lapse.
+- Changed `src/game/creature.ts` — hearClick/hearFootstep return the heard
+  position (footsteps now share the click Gaussian error — see NOTES.md);
+  `puppet` flag + `driveTo` A* movement at investigate/hunt speed.
+- Changed `src/spectate/net.ts` — phone receives `hunter`/`levelCustom`,
+  broadcasts `hear`/`hunterAck`; watch side can send and receives them.
+- Changed `src/spectate/watch.ts` — hunter role + Hunt button, single-hunter
+  ack, fog view (no player, hearing ripples fading 3 s), `V` fog toggle for
+  projectors, custom-map decode for drawn rooms.
+- Changed `src/game/loop.ts` — hunter-driven creature while linked, ripples
+  broadcast from hearing, hunter intro line, `hunted` on the recording.
+- Changed `src/main.ts` — `/draw` route, `?custom=` ingest, levelCustom
+  pending-room offer on menu/results/pause, "Draw a room" picker entry,
+  hunter message routing. `src/replay/*` — ripples + "Hunted by a person".
+- Added tests: `tests/custom.test.ts` (codec round-trip, 2000-char URL cap,
+  validation statuses, rt60/heading) and `tests/hunter.test.ts` (claim
+  rules, hand-back/retakeover, rate cap, ripple=hearing-rule reuse,
+  driveTo catch).
+- Deps added: `fflate`, `qrcode`, `@types/qrcode`.
+- Validation: `tsc` clean; 78/78 tests; `vite build` clean.
+- Limitations: Supabase realtime paths untested end-to-end pending env
+  vars on Vercel; /draw needs the Vercel rewrite for direct links.

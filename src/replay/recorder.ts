@@ -23,6 +23,8 @@ export interface Recording {
   clicks: number;
   bumps: number;
   closestApproach: number; // metres; Infinity when no creature
+  /** True when a remote human hunter drove the creature at any point. */
+  hunted?: boolean;
 }
 
 const SAMPLE_HZ = 10;

@@ -24,6 +24,8 @@ export interface LevelDef {
 
 export interface Level {
   meta: LevelMeta;
+  /** The source ASCII map — kept so drawn rooms can be re-broadcast. */
+  map: string;
   width: number;
   height: number;
   /** Solid wall material per cell, or null when walkable/void. Row-major. */
@@ -101,6 +103,7 @@ export function parseLevel(def: LevelDef): Level {
 
   return {
     meta: def.meta,
+    map: def.map,
     width,
     height: rows.length,
     walls,

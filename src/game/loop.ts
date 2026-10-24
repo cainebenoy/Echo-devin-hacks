@@ -3,7 +3,8 @@ import type { Engine } from '../audio/engine';
 import { PositionalLoop, propagate } from '../audio/sources';
 import type { SoundSet } from '../audio/synth';
 import type { Tuning } from '../audio/tuning';
-import { bfsField, type BfsField } from '../world/path';
+import { bfsField, fieldDist, type BfsField } from '../world/path';
+import { encodeCustom } from '../custom/codec';
 import type { Level } from '../world/level';
 import type { FloorMaterial } from '../world/materials';
 import type { GestureEvent } from '../input/gestures';
@@ -15,6 +16,7 @@ import type { SpectateNet } from '../spectate/net';
 import type { DebugOverlay } from '../debug/overlay';
 import type { RenderState } from '../replay/render';
 import { Creature } from './creature';
+import type { HunterLink } from './hunter';
 import { Player } from './player';
 import { Recorder, type Outcome, type Recording } from '../replay/recorder';
 import { MENU } from '../narration/script';
@@ -32,6 +34,8 @@ export interface SessionDeps {
   isTouch: boolean;
   /** Calm/assist mode: slower duller creature + louder beacon. */
   assist: boolean;
+  /** Shared hunter-mode authority state (claim/target/fallback). */
+  hunter: HunterLink;
   onEnd(outcome: Outcome, rec: Recording): void;
 }
 
@@ -104,8 +108,18 @@ export class GameSession {
       this.beacon.start();
     }
 
-    this.deps.net.event({ type: 'start', levelId: level.meta.id, levelName: level.meta.name });
-    this.deps.narrator.say(...level.meta.narration.intro);
+    this.deps.net.event({
+      type: 'start', levelId: level.meta.id, levelName: level.meta.name,
+      // Drawn rooms carry their encoded form so /watch can rebuild the map.
+      custom: level.meta.id === 'custom'
+        ? encodeCustom({ name: level.meta.name, beacon: level.meta.beacon, map: level.map })
+        : undefined,
+    });
+    const intro = [...level.meta.narration.intro];
+    if (intro.length > 1 && level.meta.creature && this.deps.hunter.claimed) {
+      intro[1] = "Something is down here with you. This time, it's a person.";
+    }
+    this.deps.narrator.say(...intro);
 
     this.last = performance.now();
     const loop = (now: number) => {
@@ -153,7 +167,8 @@ export class GameSession {
     this.recorder.click(this.runT, echo.hitPoints);
     const field = this.currentField();
     if (field && this.creature) {
-      this.creature.hearClick(this.level, field, this.player.x, this.player.y, this.creatureEvents());
+      const heard = this.creature.hearClick(this.level, field, this.player.x, this.player.y, this.creatureEvents());
+      if (heard) this.deps.net.hear({ x: heard.x, y: heard.y, kind: 'click' });
     }
     this.deps.net.event({
       type: 'click', x: this.player.x, y: this.player.y, hits: echo.hitPoints,
@@ -286,9 +301,19 @@ export class GameSession {
 
     const field = this.currentField();
 
-    // Creature AI.
+    // Creature: human hunter drives when connected; AI otherwise, resuming
+    // silently after 5 s of hunter silence.
     if (this.creature && field) {
-      this.creature.update(this.level, dt, this.player.x, this.player.y, this.creatureEvents());
+      const ev = this.creatureEvents();
+      if (this.deps.hunter.active(now)) {
+        this.recorder.data.hunted = true;
+        const tgt = this.deps.hunter.target;
+        const close = tgt !== null && fieldDist(field, tgt.col, tgt.row) <= 7;
+        this.creature.driveTo(this.level, tgt, dt, close, this.player.x, this.player.y, ev);
+      } else {
+        if (this.creature.puppet) this.creature.releasePuppet(ev);
+        this.creature.update(this.level, dt, this.player.x, this.player.y, ev);
+      }
       // Breathing follows it around corners.
       const p = propagate(this.level, field,
         this.player.x, this.player.y, this.player.heading,
@@ -373,7 +398,8 @@ export class GameSession {
     this.playCentred(buf, 0.3 + Math.random() * 0.12);
     const field = this.currentField();
     if (field && this.creature) {
-      this.creature.hearFootstep(this.level, field, f, this.player.x, this.player.y, this.creatureEvents());
+      const heard = this.creature.hearFootstep(this.level, field, f, this.player.x, this.player.y, this.creatureEvents());
+      if (heard) this.deps.net.hear({ x: heard.x, y: heard.y, kind: 'step' });
     }
   }
 
