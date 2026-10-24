@@ -8,6 +8,8 @@ export interface KeyboardHandlers {
   onHint(): void;
   onPause(): void;
   onDebugToggle(): void;
+  onSkipSpeech?(): void;
+  onToggleVoice?(): void;
 }
 
 export class KeyboardInput {
@@ -31,6 +33,8 @@ export class KeyboardInput {
       else if (e.code === 'KeyH') this.handlers.onHint();
       else if (e.code === 'Escape') this.handlers.onPause();
       else if (e.code === 'Backquote') this.handlers.onDebugToggle();
+      else if (e.code === 'Enter') this.handlers.onSkipSpeech?.();
+      else if (e.code === 'KeyM') this.handlers.onToggleVoice?.();
     };
     const up = (e: KeyboardEvent) => {
       this.keys.delete(e.code);

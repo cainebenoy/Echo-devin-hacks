@@ -133,6 +133,8 @@ export class GameSession {
 
   click(): void {
     if (this.ended || this.paused) return;
+    // Any action cuts off queued narration — never wait for speech.
+    if (this.deps.narrator.active) this.deps.narrator.clear();
     if (!this.level.meta.clicksEnabled) return;
     const now = performance.now();
     if (now - this.lastClickAt < this.deps.tuning.clickCooldownMs) return;
@@ -256,6 +258,7 @@ export class GameSession {
     // Walk input: two-finger hold, keys, or walk-in-place budget.
     let moveDir = this.walkGesture ? 1 : this.deps.keyboard.walkDir;
     if (moveDir === 0 && this.stepBudget > 0) moveDir = 1;
+    if (moveDir !== 0 && this.deps.narrator.active) this.deps.narrator.clear();
     const px0 = this.player.x;
     const py0 = this.player.y;
 

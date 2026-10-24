@@ -111,3 +111,13 @@
 - Validation: `tsc` clean; 54/54 tests; `vite build` clean.
 - Limitations: open-air cue is an addition to the spec's pure-silence rule,
   documented in NOTES.md.
+
+## 2026-10-24T22:45:00+05:30 — Skip/mute narration + better voice choice
+
+- Changed: `src/narration/narrator.ts`, `src/game/loop.ts`, `src/input/keyboard.ts`,
+  `src/main.ts` — any click/walk/Enter immediately cuts off queued narration;
+  desktop defaults to captions-only (`M` toggles voice, persisted); natural/
+  neural voices ranked ahead of generic system voices; speech rate 1.0→1.25.
+- Why: speechSynthesis voice is slow and robotic, blocking testing.
+- Validation: `tsc` clean; 54/54 tests; `vite build` clean.
+- Limitations: none identified.

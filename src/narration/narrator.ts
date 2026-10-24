@@ -16,18 +16,38 @@ export class Narrator {
   private voice: SpeechSynthesisVoice | null = null;
   private voiceReady: Promise<void>;
   speechAvailable = true;
+  /** When muted, lines are shown as captions with no robot speech. */
+  muted = false;
   /** For the debug overlay: which voice (or fallback) is in use. */
   voiceLabel = 'unresolved';
   private engine: Engine | null = null;
   private captionEl: HTMLElement | null = null;
   private earcon: (() => void) | null = null;
   private timer = 0;
+  private captionTimer = 0;
   private idleResolve: (() => void) | null = null;
   private stopRequested = false;
   private firstUtterance = true;
 
   constructor() {
+    try { this.muted = localStorage.getItem('echo.voiceMuted') === '1'; } catch { /* noop */ }
     this.voiceReady = this.resolveVoice();
+  }
+
+  setMuted(v: boolean): void {
+    this.muted = v;
+    try { localStorage.setItem('echo.voiceMuted', v ? '1' : '0'); } catch { /* noop */ }
+    if (v) this.clear();
+  }
+
+  toggleMuted(): boolean {
+    this.setMuted(!this.muted);
+    return this.muted;
+  }
+
+  /** Whether narration is currently playing or queued. */
+  get active(): boolean {
+    return this.speaking || this.queue.length > 0;
   }
 
   private resolveVoice(): Promise<void> {
@@ -41,7 +61,15 @@ export class Narrator {
       const pick = () => {
         const voices = speechSynthesis.getVoices();
         const en = voices.filter((v) => v.lang.toLowerCase().startsWith('en'));
-        this.voice = en.find((v) => v.localService) ?? en[0] ?? voices[0] ?? null;
+        // Prefer natural/neural voices if present, then localService (offline),
+        // then any English voice.
+        const score = (v: SpeechSynthesisVoice) => {
+          const n = v.name.toLowerCase();
+          return (/natural|neural|siri|samantha|aria|jenny|guy|google/.test(n) ? 4 : 0)
+            + (v.localService ? 2 : 0);
+        };
+        en.sort((a, b) => score(b) - score(a));
+        this.voice = en[0] ?? voices[0] ?? null;
         this.voiceLabel = this.voice
           ? `${this.voice.name} (${this.voice.lang}${this.voice.localService ? ', local' : ', remote'})`
           : 'fallback (no voices)';
@@ -140,22 +168,24 @@ export class Narrator {
       this.queue.unshift(line);
       return;
     }
-    if (!this.speechAvailable || typeof speechSynthesis === 'undefined') {
-      // Caption + earcon fallback; pause so captions are readable.
+    if (this.muted || !this.speechAvailable || typeof speechSynthesis === 'undefined') {
+      // Caption fallback (also used when voice is muted); show briefly.
       this.showCaption(line);
-      this.earcon?.();
+      if (!this.muted) this.earcon?.();
       this.speaking = true;
       this.timer = window.setTimeout(() => {
         this.speaking = false;
+        if (this.queue.length === 0) this.hideCaption();
         void this.pump();
-      }, Math.min(3500, 800 + line.length * 40));
+      }, Math.min(2200, 600 + line.length * 25));
       return;
     }
+    this.showCaption(line);
     this.speaking = true;
     this.engine?.duck(true);
     const u = new SpeechSynthesisUtterance(line);
     if (this.voice) u.voice = this.voice;
-    u.rate = 1.0;
+    u.rate = 1.25;
     u.lang = this.voice?.lang ?? 'en-US';
     const timeoutMs = 500 + 80 * line.length;
     let done = false;
@@ -166,6 +196,7 @@ export class Narrator {
       window.clearTimeout(this.timer);
       this.engine?.duck(false);
       this.speaking = false;
+      if (this.queue.length === 0) this.hideCaption();
       u.onend = u.onerror = u.onstart = null;
       void this.pump();
     };
@@ -197,6 +228,7 @@ export class Narrator {
   }
 
   private showCaption(line: string): void {
+    window.clearTimeout(this.captionTimer);
     if (this.captionEl) {
       this.captionEl.textContent = line;
       this.captionEl.style.opacity = '1';
@@ -204,6 +236,9 @@ export class Narrator {
   }
 
   private hideCaption(): void {
-    if (this.captionEl) this.captionEl.style.opacity = '0';
+    window.clearTimeout(this.captionTimer);
+    this.captionTimer = window.setTimeout(() => {
+      if (this.captionEl) this.captionEl.style.opacity = '0';
+    }, 300);
   }
 }

@@ -92,6 +92,11 @@ function boot(): void {
       if (!visual) overlay.toggle();
       tuningPanel.toggle();
     },
+    onSkipSpeech: () => narrator.clear(),
+    onToggleVoice: () => {
+      const m = narrator.toggleMuted();
+      setStatus(m ? 'Voice muted — captions only (M to enable)' : 'Voice enabled (M to mute)', phase === 'playing');
+    },
   });
 
   const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -99,13 +104,18 @@ function boot(): void {
   // or anywhere via ?visual=1 (phone stays black without it).
   const visual = params.get('visual') === '1' || (!isTouch && params.get('visual') !== '0');
   overlay.setVisual(visual);
+  // In visual/desktop testing mode, default to captions-only so the robot
+  // speechSynthesis voice doesn't talk over every run (press M to enable).
+  if (visual && localStorage.getItem('echo.voiceMuted') === null) {
+    narrator.setMuted(true);
+  }
 
   function setStatus(text: string, help = false): void {
     statusEl.textContent = text;
     statusEl.classList.toggle('on', !!text && visual);
     helpEl.classList.toggle('on', help && visual);
     if (help) {
-      helpEl.textContent = 'Space click · W/S walk · A/D turn · H hint · Esc pause · ` debug';
+      helpEl.textContent = 'Space click · W/S walk · A/D turn · H hint · M voice · Esc pause · ` tuning';
     }
   }
 
