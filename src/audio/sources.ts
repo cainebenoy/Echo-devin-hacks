@@ -57,7 +57,7 @@ export class PositionalLoop {
    * up instead of staying a dull thud, so "turned the right way" is clearly
    * brighter, not just a touch louder.
    */
-  update(rel: number, distance: number, occluded: boolean, extraGain = 1, aim = 0): void {
+  update(rel: number, distance: number, occluded: boolean, extraGain = 1, aim = 0, duck = 1): void {
     const t = this.ctx.currentTime;
     const px = Math.sin(rel);
     const pz = -Math.cos(rel);
@@ -67,8 +67,9 @@ export class PositionalLoop {
     const pan = Math.max(-0.85, Math.min(0.85, Math.sin(rel) * 1.4));
     this.stereo.pan.setTargetAtTime(pan, t, 0.08);
     // 1/d rolloff with an optional audibility floor — the beacon must stay
-    // faintly audible across a long level; breathing (proximity cue) does not.
-    const g = Math.max(this.minGain, (this.baseGain * extraGain) / Math.max(1, distance));
+    // faintly audible across a long level; `duck` scales the final gain
+    // (including the floor) so proximity danger can quiet the wind.
+    const g = Math.max(this.minGain, (this.baseGain * extraGain) / Math.max(1, distance)) * duck;
     this.gain.gain.setTargetAtTime(g, t, 0.08);
     const freq = occluded ? 1500 + 3500 * aim : 12000;
     this.filter.frequency.setTargetAtTime(freq, t, 0.08);

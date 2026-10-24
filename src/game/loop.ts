@@ -429,6 +429,7 @@ export class GameSession {
 
     // Creature: human hunter drives when connected; AI otherwise, resuming
     // silently after 5 s of hunter silence.
+    let beaconDuck = 1;
     if (this.creature && field) {
       const ev = this.creatureEvents();
       if (this.deps.hunter.active(now)) {
@@ -440,16 +441,31 @@ export class GameSession {
         if (this.creature.puppet) this.creature.releasePuppet(ev);
         this.creature.update(this.level, dt, this.player.x, this.player.y, ev);
       }
-      // Breathing follows it around corners.
+      const d = this.creature.distanceTo(field);
+      const st = this.creature.state;
+      // When the creature is near (< 10 m) or actively hunting, duck the exit
+      // wind beacon down to ~8% and emphasize the creature's directional
+      // breathing so the player can pinpoint and evade the creature first;
+      // once distance opens back up, the wind swells back in automatically.
+      if (d >= 0 && d < 10) {
+        const t = Math.max(0, Math.min(1, (d - 4) / 6)); // 0 at ≤4 m, 1 at 10 m
+        beaconDuck = 0.08 + 0.92 * t;
+      }
+      if (st === 'hunt') beaconDuck = Math.min(beaconDuck, 0.1);
+
+      // Breathing follows it around corners — slightly boosted when close so
+      // its direction is unmistakable while the wind is ducked.
       const p = propagate(this.level, field,
         this.player.x, this.player.y, this.player.heading,
         this.creature.x, this.creature.y);
-      if (p) this.breathing?.update(p.rel, p.distance, p.occluded);
+      if (p) {
+        const nearBoost = d >= 0 && d < 9 ? 1.35 : 1;
+        this.breathing?.update(p.rel, p.distance, p.occluded, nearBoost);
+      }
       // Heartbeat when path distance < huntEnter, rate + volume scale with
       // closeness; a vibration pulse under 3 m warns without audio. Kept
       // restrained (≤ 120 bpm, ≤ 0.58 gain) so echoes and the beacon stay
       // intelligible during a chase instead of getting crushed into mush.
-      const d = this.creature.distanceTo(field);
       const enter = this.creature.hearing.huntEnter;
       if (d >= 0 && d < enter) {
         const bpm = 65 + ((enter - d) / Math.max(1, enter - 1)) * (120 - 65);
@@ -463,16 +479,15 @@ export class GameSession {
       // Directional growl ticks — heartbeat says HOW CLOSE, these say WHICH
       // WAY: positional growls from its real position while it tracks you.
       // Spaced wide enough to leave silence between cues for your echoes.
-      const st = this.creature.state;
       const growlEvery = st === 'hunt' ? 2.4 : st === 'investigate' ? 4.5 : 0;
       if (growlEvery > 0 && this.runT >= this.nextGrowl) {
         this.nextGrowl = this.runT + growlEvery;
         this.playPositional(this.deps.sounds.growl,
           this.creature.x, this.creature.y, st === 'hunt' ? 0.42 : 0.28);
       }
-      // Ambient drips in the hold — skipped during an active hunt so they
-      // don't add another layer when the mix is already full.
-      if (st !== 'hunt' && this.runT >= this.nextDrip) {
+      // Ambient drips in the hold — silenced whenever the creature is near
+      // (< 10 m) or hunting so nothing competes with locating the creature.
+      if (st !== 'hunt' && (d < 0 || d >= 10) && this.runT >= this.nextDrip) {
         this.nextDrip = this.runT + 7 + Math.random() * 8;
         const dx = this.player.x + (Math.random() * 8 - 4);
         const dy = this.player.y + (Math.random() * 8 - 4);
@@ -480,7 +495,8 @@ export class GameSession {
       }
     }
 
-    // Beacon.
+    // Beacon — ducks down when the creature is close so you can locate and
+    // evade the threat first, then swells back as you create distance.
     if (this.beacon && field && this.level.exits.length > 0) {
       const e = this.level.exits[0];
       const p = propagate(this.level, field,
@@ -492,7 +508,7 @@ export class GameSession {
       // ambiguity pure panning can't solve.
       if (p) {
         const aim = Math.pow(Math.max(0, Math.cos(p.rel)), 2);
-        this.beacon.update(p.rel, p.distance, p.occluded, 1 + 0.9 * aim, aim);
+        this.beacon.update(p.rel, p.distance, p.occluded, 1 + 0.9 * aim, aim, beaconDuck);
       }
     }
 

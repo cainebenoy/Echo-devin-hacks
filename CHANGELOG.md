@@ -1,5 +1,28 @@
 # Change log
 
+## 2026-10-25T04:00:00+05:30 — Duck exit wind & drips when creature is near
+
+- Changed: `src/audio/sources.ts`, `src/game/loop.ts`.
+- Why (user design insight): when the creature is close, the exit wind
+  beacon and ambient drips competed with the creature's directional
+  breathing/growls; ducking the wind lets the player focus on identifying
+  which side the creature is on, move away first, and then hear the wind
+  return once they're safe.
+- Changes:
+  - `PositionalLoop.update` now accepts a `duck` multiplier (default `1`)
+    applied to the final gain (including `minGain`).
+  - When creature path distance `d < 10` m, `beaconDuck` smoothly ramps
+    down from `1.0` (at 10 m) to `0.08` (at ≤ 4 m), and caps at `0.10`
+    during an active `'hunt'`.
+  - Creature directional breathing gets a `1.35×` proximity boost inside
+    9 m so its left/right bearing stands out clearly while the wind is
+    ducked.
+  - Ambient water drips are suppressed whenever `d < 10` m (in addition to
+    during `'hunt'`).
+- Validation: `npx tsc --noEmit` clean; `vitest` 105/105; `vite build` clean.
+- Limitations: wind stays at ~8–10% floor rather than 0% so it never
+  clicks on/off abruptly.
+
 ## 2026-10-25T03:45:00+05:30 — Auto-hide leaderboard, replay sync, no accidental round-start from results
 
 - Changed: `src/spectate/boardui.ts`, `src/replay/results.ts`, `src/main.ts`,
