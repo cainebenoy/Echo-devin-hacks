@@ -1,5 +1,22 @@
 # Change log
 
+## 2026-10-25T02:05:00+05:30 — Menu: drop backdrop panel, ping from the O
+
+- Changed: `src/main.ts`, `src/style.css`.
+- Why (user direction): the landing page read as a rectangle behind the
+  content — removed `#menu`'s radial-gradient backdrop so the menu floats
+  on the fog/grain darkness; and the sonar ping now originates inside the
+  "O" of the wordmark (boot + menu), not a point at 42% screen height —
+  the first echo comes out of the title itself.
+- Details: the O glyph is wrapped in `.o` (`position:relative`,
+  `letter-spacing:0` so the span box hugs the glyph and the ring centre
+  lands on the counter); rings use a smaller 80px base with a dedicated
+  `sonar-o` keyframe (scale 0.5→7) so they bloom from inside the letter
+  and wash over the menu.
+- Validation: `npx tsc --noEmit` clean; `vite build` + SW clean.
+- Limitations: the O-centre approximation is the glyph-box centre —
+  visually indistinguishable across the clamp(2.6–4.4rem) title sizes.
+
 ## 2026-10-25T01:45:00+05:30 — Leaderboard fixes + editable entries
 
 - Changed: `src/spectate/leaderboard.ts`, `src/spectate/boardui.ts`,
