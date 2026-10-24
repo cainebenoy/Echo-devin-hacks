@@ -286,3 +286,20 @@
 - Limitations: human play remains scarier than the deterministic bot (real
   players click when they shouldn't); balance validated by simulation, not
   yet by a fresh blind playtest.
+
+## 2026-10-25T03:40:00+05:30 — Real landing/menu screen
+
+- Changed: `src/main.ts` — new `#menu` screen shown in the menu phase on
+  every device: ECHO wordmark, one-line pitch ("A game played in total
+  darkness, by sound alone"), the cue legend (knock/chime/wind), the level
+  picker moved inside it, and a pulsing "pick a level / press Space" CTA.
+  The bare status pill no longer doubles as the menu (status is quiet
+  unless a message needs it, e.g. an incoming drawn room). The menu hides
+  on play/results and returns on the menu phase. `src/style.css` — menu
+  styling; the picker now flows inside the panel instead of floating at
+  the bottom; room code stays above the menu for /watch setup.
+- Why: after the boot tap users landed in a black void with a dim pill and
+  loose floating buttons — nothing said what the game was or what to do.
+  (The tuning panel was already hidden by default; T toggles it.)
+- Validation: `tsc` clean; 82/82 tests; `vite build` clean.
+- Limitations: none.

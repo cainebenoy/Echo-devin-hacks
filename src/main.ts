@@ -43,9 +43,17 @@ function boot(): void {
       <p>Put on wired earphones.<br>Tap anywhere to begin.</p>
       <p class="code" id="speech-note"></p>
     </div>
+    <div id="menu" class="hidden">
+      <div class="menu-inner">
+        <h1>ECHO</h1>
+        <p class="tagline">A game played in total darkness, by sound alone.</p>
+        <p class="howto">Send out a click — its echo paints the room.<br>Knock = wall · Chime = opening · Wind = the way out.</p>
+        <div id="level-pick"></div>
+        <p class="cta" id="menu-cta"></p>
+      </div>
+    </div>
     <div id="room-code"></div>
     <div id="status"></div>
-    <div id="level-pick"></div>
     <div id="caption"></div>`;
   const bootEl = app.querySelector('#boot')!;
   const codeEl = app.querySelector('#room-code')!;
@@ -53,6 +61,8 @@ function boot(): void {
   const captionEl = app.querySelector<HTMLElement>('#caption')!;
   const statusEl = app.querySelector<HTMLElement>('#status')!;
   const levelPick = app.querySelector<HTMLElement>('#level-pick')!;
+  const menuEl = app.querySelector<HTMLElement>('#menu')!;
+  const menuCta = app.querySelector<HTMLElement>('#menu-cta')!;
 
   const results = new ResultsScreen(app);
   const overlay = new DebugOverlay(app);
@@ -110,6 +120,9 @@ function boot(): void {
   });
 
   const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  menuCta.textContent = isTouch
+    ? 'tap a level to begin'
+    : 'pick a level — or press Space to play';
   // Visual/testing mode: live map during play. On by default on desktop,
   // or anywhere via ?visual=1 (phone stays black without it).
   const visual = params.get('visual') === '1' || (!isTouch && params.get('visual') !== '0');
@@ -277,7 +290,8 @@ function boot(): void {
 
   // ── audio menu ────────────────────────────────────────────────────────
   function renderLevelPick(): void {
-    const show = visual && phase === 'menu';
+    const show = phase === 'menu';
+    menuEl.classList.toggle('hidden', !show);
     levelPick.classList.toggle('on', show);
     levelPick.innerHTML = '';
     if (!show) return;
@@ -318,7 +332,7 @@ function boot(): void {
   function menuStatus(): void {
     const l = levels[menuIdx];
     const locked = !visual && !(l.meta.order <= progress.unlocked || progress.finishedAll);
-    setStatus(`Level ${l.meta.order}: ${l.meta.name}${assist ? ' · calm' : ''}`);
+    setStatus(''); // the menu screen carries the info — keep the top quiet
     renderLevelPick();
     if (overlay.visible) {
       overlay.render(l, {}, engine.ready ? engine : null, { menu: locked ? 'locked' : 'unlocked' });
@@ -372,6 +386,7 @@ function boot(): void {
   function onRunEnd(outcome: 'win' | 'caught', rec: Recording): void {
     lastRec = rec;
     phase = 'results';
+    renderLevelPick(); // hides the menu screen
     setStatus(outcome === 'win' ? 'Results — escaped' : 'Results — caught');
     if (visual) overlay.show(false);
     const l = currentLevel!;
