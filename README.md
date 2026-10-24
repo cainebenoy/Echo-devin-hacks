@@ -39,8 +39,8 @@ Built for **Devin Hack Kochi** (see
 4. Start: `npm run dev` (desktop backup demo: `Space` click, `W`/`S` walk,
    `A`/`D` turn, `Q` pebble, `H` hint, `M` voice, `Esc` pause,
    `` ` `` debug map, `T` tuning panel; `/watch`: `L` leaderboard,
-   `Shift+L` clear board).
-5. Checks: `npm test` (102 unit tests), `npm run build` (typecheck + PWA build).
+   `Shift+L` clear board, click a row to rename or remove it).
+5. Checks: `npm test` (104 unit tests), `npm run build` (typecheck + PWA build).
 6. Screenshots: `npm run screenshots` regenerates `screenshots/` from the real
    level maps and echo model.
 

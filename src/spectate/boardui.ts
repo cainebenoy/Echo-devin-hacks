@@ -1,5 +1,5 @@
 import {
-  BOARD_SHOW, clearBoard, loadBoard, saveRun, sanitizeName,
+  BOARD_SHOW, clearBoard, loadBoard, removeEntry, renameEntry, saveRun, sanitizeName,
   type BoardRun, type StoreLike,
 } from './leaderboard';
 
@@ -20,6 +20,8 @@ export class BoardUI {
   /** The board key currently displayed (for L toggle / Shift+L clear). */
   currentKey: string | null = null;
   visible = false;
+  private pending: { key: string; run: BoardRun; onSaved?: (rank: number, record: boolean) => void }[] = [];
+  private promptOpen = false;
 
   constructor(parent: HTMLElement) {
     this.panel = document.createElement('div');
@@ -28,7 +30,7 @@ export class BoardUI {
     this.panel.innerHTML = `
       <h2>LEADERBOARD <span id="board-key"></span></h2>
       <ol id="board-rows"></ol>
-      <p class="board-hint">L board · Shift+L clear</p>`;
+      <p class="board-hint">L board · Shift+L clear · click a row to edit</p>`;
     parent.appendChild(this.panel);
     this.rows = this.panel.querySelector('#board-rows')!;
     this.keyLabel = this.panel.querySelector('#board-key')!;
@@ -37,6 +39,27 @@ export class BoardUI {
     this.banner.className = 'hidden';
     this.banner.textContent = '★ NEW RECORD ★';
     parent.appendChild(this.banner);
+    // Row edits — click a row to rename it, click its × to remove it. The
+    // operator fixes mis-named or test entries without clearing the board.
+    this.rows.addEventListener('click', (e) => {
+      const li = (e.target as HTMLElement).closest('li[data-at]') as HTMLElement | null;
+      if (!li || !this.currentKey || this.promptOpen) return;
+      const at = Number(li.dataset.at);
+      const key = this.currentKey;
+      if ((e.target as HTMLElement).closest('.del')) {
+        const nm = li.querySelector('.nm')?.textContent ?? 'this entry';
+        if (window.confirm(`Remove ${nm} from ${key}?`)) {
+          removeEntry(key, at);
+          this.show(key);
+        }
+        return;
+      }
+      this.askName((raw) => {
+        if (raw === null) return;
+        renameEntry(key, at, sanitizeName(raw));
+        this.show(key);
+      }, 'Rename player');
+    });
   }
 
   /** Render + show a board; `highlight` marks the just-saved rank. */
@@ -56,13 +79,14 @@ export class BoardUI {
           e.hunted ? '<span class="chip hunted">hunted</span>' : '',
           e.pebbles > 0 ? `<span class="chip">${e.pebbles} pebble${e.pebbles === 1 ? '' : 's'}</span>` : '',
         ].join('');
-        return `<li class="${i === highlight ? 'hl' : ''}">
+        return `<li class="${i === highlight ? 'hl' : ''}" data-at="${e.at}" title="Click to rename">
           <span class="rk">${i + 1}</span>
           <span class="nm">${escapeHtml(e.name)}</span>
           <span class="oc ${e.outcome}">${e.outcome === 'win' ? '◈' : '✕'}</span>
           <span class="tm">${mins}:${String(secs).padStart(2, '0')}</span>
           <span class="ck">${e.clicks}c</span>
           ${chips}
+          <span class="del" title="Remove entry">×</span>
         </li>`;
       }).join('');
     this.panel.classList.remove('hidden');
@@ -106,15 +130,41 @@ export class BoardUI {
   }
 
   /**
+   * Feed a finished run — prompts queue behind an open one, so a run ending
+   * while the operator is still naming the previous player is never
+   * silently discarded (the old code just dropped it).
+   */
+  feed(key: string, run: BoardRun, onSaved?: (rank: number, record: boolean) => void): void {
+    this.pending.push({ key, run, onSaved });
+    this.drainPrompts();
+  }
+
+  private drainPrompts(): void {
+    if (this.promptOpen) return;
+    const next = this.pending.shift();
+    if (!next) return;
+    this.promptOpen = true;
+    this.askName((raw) => {
+      this.promptOpen = false;
+      if (raw !== null) {
+        const { rank, record } = saveRun(next.key, next.run, sanitizeName(raw));
+        this.flash(next.key, rank, record);
+        next.onSaved?.(rank, record);
+      }
+      this.drainPrompts();
+    });
+  }
+
+  /**
    * "Name this player" overlay — Enter saves (raw text, caller sanitizes),
    * Esc discards. cb(null) means the run is not recorded.
    */
-  askName(cb: (name: string | null) => void): void {
+  askName(cb: (name: string | null) => void, title = 'Name this player'): void {
     this.closePrompt();
     const el = document.createElement('div');
     el.id = 'name-prompt';
     el.innerHTML = `<div class="np-box">
-      <p class="np-title">Name this player</p>
+      <p class="np-title">${title}</p>
       <input id="np-input" maxlength="16" autocomplete="off" spellcheck="false" />
       <p class="np-hint">Enter saves · Esc discards</p>
     </div>`;
@@ -158,9 +208,9 @@ export class BoardUI {
 }
 
 /**
- * Feed a finished run into the leaderboard: prompt for a name, then save +
- * flash on `ui`. Used by /watch for phone runs and by the results screen
- * for local laptop runs. `ui.askName` returning null = discarded.
+ * Feed a finished run into the leaderboard — queued prompt, then save +
+ * flash. Used by /watch for phone runs and by the results screen for
+ * local laptop runs. Esc discards the run.
  */
 export function recordRun(
   ui: BoardUI,
@@ -168,12 +218,7 @@ export function recordRun(
   run: BoardRun,
   onSaved?: (rank: number, record: boolean) => void,
 ): void {
-  ui.askName((raw) => {
-    if (raw === null) return;
-    const { rank, record } = saveRun(key, run, sanitizeName(raw));
-    ui.flash(key, rank, record);
-    onSaved?.(rank, record);
-  });
+  ui.feed(key, run, onSaved);
 }
 
 function escapeHtml(s: string): string {

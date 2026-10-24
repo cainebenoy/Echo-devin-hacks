@@ -434,6 +434,7 @@ function boot(): void {
 
   function enterMenu(): void {
     phase = 'menu';
+    boardUi.hide(); // a lingering leaderboard flash must not ride into the menu
     menuIdx = Math.min(menuIdx, levels.length - 1);
     const l = levels[menuIdx];
     menuStatus();
@@ -444,6 +445,7 @@ function boot(): void {
   function startLevel(level: Level): void {
     if (!sounds) return;
     session?.stop();
+    boardUi.hide(); // a lingering leaderboard flash must not cover gameplay
     currentLevel = level;
     phase = 'playing';
     renderLevelPick();

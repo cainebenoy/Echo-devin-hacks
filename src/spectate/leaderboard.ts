@@ -95,6 +95,11 @@ export function saveRun(
   name: string,
   s?: StoreLike,
 ): { entries: BoardEntry[]; rank: number; record: boolean } {
+  const prev = loadBoard(key, s);
+  // `at` is the entry's identity for rename/remove — bump on collisions
+  // (two saves can land in the same millisecond).
+  let at = Date.now();
+  if (prev.some((e) => e.at === at)) at = Math.max(...prev.map((e) => e.at)) + 1;
   const entry: BoardEntry = {
     name,
     outcome: run.outcome,
@@ -102,9 +107,9 @@ export function saveRun(
     clicks: run.clicks,
     pebbles: run.pebbles,
     hunted: run.hunted,
-    at: Date.now(),
+    at,
   };
-  const all = rankEntries([...loadBoard(key, s), entry]);
+  const all = rankEntries([...prev, entry]);
   const rank = all.indexOf(entry);
   const capped = all.slice(0, BOARD_TOP);
   const st = store(s);
@@ -116,4 +121,20 @@ export function saveRun(
 
 export function clearBoard(key: string, s?: StoreLike): void {
   try { store(s)?.removeItem(PREFIX + key); } catch { /* ignore */ }
+}
+
+/** Rename the entry saved at `at` (epoch ms — the entry's identity). */
+export function renameEntry(key: string, at: number, name: string, s?: StoreLike): void {
+  const st = store(s);
+  if (!st) return;
+  const entries = loadBoard(key, s).map((e) => (e.at === at ? { ...e, name } : e));
+  try { st.setItem(PREFIX + key, JSON.stringify(entries)); } catch { /* full/blocked */ }
+}
+
+/** Remove the entry saved at `at`. */
+export function removeEntry(key: string, at: number, s?: StoreLike): void {
+  const st = store(s);
+  if (!st) return;
+  const entries = loadBoard(key, s).filter((e) => e.at !== at);
+  try { st.setItem(PREFIX + key, JSON.stringify(entries)); } catch { /* full/blocked */ }
 }

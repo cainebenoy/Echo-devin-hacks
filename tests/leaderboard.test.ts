@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BOARD_TOP, boardKey, loadBoard, rankEntries, sanitizeName, saveRun,
+  BOARD_TOP, boardKey, loadBoard, rankEntries, removeEntry, renameEntry,
+  sanitizeName, saveRun,
   type BoardEntry, type BoardRun, type StoreLike,
 } from '../src/spectate/leaderboard';
 
@@ -98,5 +99,30 @@ describe('storage', () => {
     const slower = saveRun('hold', run({ duration: 90 }), 'b', st);
     expect(slower.rank).toBe(1);
     expect(slower.record).toBe(false);
+  });
+
+  it('renameEntry fixes a name without touching the score or rank', () => {
+    const st = memStore();
+    saveRun('hold', run({ duration: 60 }), 'a', st);
+    saveRun('hold', run({ duration: 45 }), 'Anonymous', st);
+    const board = loadBoard('hold', st);
+    const target = board[0]; // the 45s run ranks first
+    expect(target.name).toBe('Anonymous');
+    renameEntry('hold', target.at, 'champ', st);
+    const after = loadBoard('hold', st);
+    expect(after[0].name).toBe('champ');
+    expect(after[0].duration).toBe(45);
+    expect(after).toHaveLength(2);
+  });
+
+  it('removeEntry deletes exactly one entry', () => {
+    const st = memStore();
+    saveRun('hold', run({ duration: 60 }), 'a', st);
+    saveRun('hold', run({ duration: 45 }), 'b', st);
+    const board = loadBoard('hold', st);
+    removeEntry('hold', board[0].at, st);
+    const after = loadBoard('hold', st);
+    expect(after).toHaveLength(1);
+    expect(after[0].name).toBe('a');
   });
 });

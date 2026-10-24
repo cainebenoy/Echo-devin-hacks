@@ -1,5 +1,32 @@
 # Change log
 
+## 2026-10-25T01:45:00+05:30 — Leaderboard fixes + editable entries
+
+- Changed: `src/spectate/leaderboard.ts`, `src/spectate/boardui.ts`,
+  `src/spectate/watch.ts`, `src/main.ts`, `src/style.css`,
+  `tests/leaderboard.test.ts`, `README.md`.
+- Why — fixes (review + user report "the leaderboard has some issues"):
+  1. The board flash could linger over live gameplay/menus — it now hides
+     on `startLevel`/`enterMenu` (main) and on a new 'start' broadcast (watch).
+  2. A run ending while the operator was still naming the previous player
+     was silently discarded (the new prompt replaced the open one without
+     its callback firing). Prompts now queue via `BoardUI.feed` — no run
+     is ever dropped.
+  3. `L` before the first finished run did nothing, and on drawn rooms it
+     could never resolve `custom:<hash>` — the fallback now derives the
+     board key from the watched level (hash computed from its map).
+  4. `at` (entry identity for edits) could collide when two saves landed
+     in the same millisecond — `saveRun` now bumps on collision.
+- Why — feature: the operator can now edit entries — click a row to
+  rename it (fixes mis-typed names and "Anonymous" saves), click the row's
+  × to remove it (confirm dialog). Renaming never changes the score or
+  rank. Implemented via `renameEntry`/`removeEntry` keyed on `at`.
+- Validation: `npx tsc --noEmit` clean; `vitest` 104/104 pass (rename/
+  remove tests added); `vite build` + SW clean.
+- Limitations: edits are name-and-delete only — scores/durations can't be
+  hand-edited (deliberate: no score forgery); row edits are blocked while
+  a name prompt is open.
+
 ## 2026-10-25T01:10:00+05:30 — Batch E self-review: edge-case fixes
 
 - Changed: `src/game/loop.ts`, `src/input/gestures.ts`,

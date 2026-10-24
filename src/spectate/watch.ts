@@ -2,7 +2,7 @@ import { getLevel } from '../levels';
 import { renderMap } from '../replay/render';
 import type { Level } from '../world/level';
 import { parseLevel } from '../world/level';
-import { decodeCustom, customDef } from '../custom/codec';
+import { decodeCustom, customDef, customHash } from '../custom/codec';
 import type { Recording } from '../replay/recorder';
 import type { CreatureState } from '../game/creature';
 import { ResultsScreen } from '../replay/results';
@@ -120,6 +120,7 @@ export function startWatchPage(root: HTMLElement): void {
       runStart = performance.now();
       ended = false;
       results.hide();
+      boardUi.hide(); // a new run clears any lingering leaderboard flash
       form.classList.add('hidden');
       stage.classList.remove('hidden');
       hudLevel().textContent = e.levelName ?? '';
@@ -224,7 +225,15 @@ export function startWatchPage(root: HTMLElement): void {
     if (e.key === 'v' || e.key === 'V') fogView = !fogView;
     if ((e.key === 'l' || e.key === 'L') && e.shiftKey) boardUi.clearCurrent();
     else if (e.key === 'l' || e.key === 'L') {
-      boardUi.toggle(lastBoardKey ?? (live ? boardKey({ levelId: live.levelId }) : null));
+      // Fall back to the watched level's board — for drawn rooms that means
+      // deriving the hash from the map, matching where runs were saved.
+      const key = lastBoardKey ?? (level
+        ? boardKey({
+          levelId: level.meta.id,
+          customHash: level.meta.id === 'custom' ? customHash(level.map) : undefined,
+        })
+        : null);
+      boardUi.toggle(key);
     }
   });
   window.addEventListener('beforeunload', () => {
