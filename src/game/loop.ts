@@ -140,7 +140,7 @@ export class GameSession {
     const t = this.deps.tuning;
     const echo = computeEcho(this.level, this.player.x, this.player.y, this.player.heading, t);
     this.lastEcho = echo;
-    playEcho(this.deps.engine, this.deps.sounds.click, echo, t);
+    playEcho(this.deps.engine, this.deps.sounds.click, this.deps.sounds.openAir, echo, t);
     this.recorder.click(this.runT, echo.hitPoints);
     const field = this.currentField();
     if (field && this.creature) {
@@ -384,15 +384,22 @@ export class GameSession {
     // Plain-English description of the last echo — what the player heard.
     let heard = '—';
     if (this.lastEcho) {
-      if (this.lastEcho.bins.length === 0) {
+      const signed = (r: number) => (r > Math.PI ? r - 2 * Math.PI : r);
+      const openAhead = this.lastEcho.openings.find((o) => Math.abs(signed(o.rel)) <= Math.max(0.35, o.span / 2));
+      if (openAhead) {
+        heard = 'OPENING ahead (airy whoosh)';
+      } else if (this.lastEcho.bins.length === 0) {
         heard = 'silence (opening)';
       } else {
         const nearest = this.lastEcho.bins.reduce((a, b) => (b.dist < a.dist ? b : a));
-        const deg = nearest.rel > Math.PI ? nearest.rel - 2 * Math.PI : nearest.rel;
+        const deg = signed(nearest.rel);
         const dir = Math.abs(deg) < 0.4 ? 'ahead'
           : deg > 0 ? (deg < 2.2 ? 'right' : 'behind')
           : (deg > -2.2 ? 'left' : 'behind');
-        heard = `${nearest.material} ${nearest.dist.toFixed(1)}m ${dir}`;
+        const openNote = this.lastEcho.openings.length > 0
+          ? ` · gap ${signed(this.lastEcho.openings[0].rel) > 0 ? 'right' : 'left'}`
+          : '';
+        heard = `${nearest.material} ${nearest.dist.toFixed(1)}m ${dir}${openNote}`;
       }
     }
     this.deps.overlay.render(this.level, state, this.deps.engine, {

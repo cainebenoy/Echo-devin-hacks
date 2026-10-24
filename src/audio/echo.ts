@@ -25,6 +25,10 @@ export interface EchoResult {
   bins: EchoBin[];
   /** All non-empty bins, for replay visualization. */
   hitPoints: { x: number; y: number }[];
+  /** Contiguous arcs of empty bins — directions where the click found no
+   * return. Each emits one soft "open-air" cue so openings are heard, not
+   * just inferred from silence. */
+  openings: { rel: number; span: number }[];
 }
 
 const wrapAngle = (a: number) => {
@@ -104,13 +108,30 @@ export function computeEcho(level: Level, px: number, py: number, heading: numbe
     bins.push({ rel, energy: eBin, dist: dBin, material: mBin, amp, delay, cutoff, hit });
     hitPoints.push(hit);
   }
-  return { bins, hitPoints };
+
+  // Contiguous runs of empty bins → open arcs (wrap-around aware).
+  const openings: { rel: number; span: number }[] = [];
+  const empty = acc.map((a) => a.hits === 0);
+  if (empty.some(Boolean) && !empty.every(Boolean)) {
+    let start = 0;
+    while (empty[start]) start++; // start on a covered bin, breaking the seam
+    let i = 0;
+    while (i < B) {
+      const idx = (start + i) % B;
+      if (!empty[idx]) { i++; continue; }
+      let len = 0;
+      while (i < B && empty[(start + i) % B]) { len++; i++; }
+      const centreIdx = start + i - len / 2;
+      openings.push({ rel: wrapAngle(centreIdx * binWidth), span: len * binWidth });
+    }
+  }
+  return { bins, hitPoints, openings };
 }
 
 /**
  * Play the dry click plus one delayed, filtered, HRTF-panned voice per bin.
  */
-export function playEcho(engine: Engine, clickBuffer: AudioBuffer, echo: EchoResult, t: Tuning): void {
+export function playEcho(engine: Engine, clickBuffer: AudioBuffer, openAir: AudioBuffer, echo: EchoResult, t: Tuning): void {
   const ctx = engine.ctx;
   const now = ctx.currentTime;
 
@@ -144,5 +165,17 @@ export function playEcho(engine: Engine, clickBuffer: AudioBuffer, echo: EchoRes
     src.connect(send).connect(engine.reverbSend);
     engine.track(src);
     src.start(now + bin.delay);
+  }
+
+  // One airy cue per opening, panned to its direction — silence made legible.
+  for (const op of echo.openings) {
+    const src = ctx.createBufferSource();
+    src.buffer = openAir;
+    const g = ctx.createGain();
+    g.gain.value = Math.min(0.22, 0.08 + op.span * 0.06);
+    const pan = engine.pannerAt(op.rel);
+    src.connect(g).connect(pan).connect(engine.sfxBus);
+    engine.track(src);
+    src.start(now + 0.08);
   }
 }

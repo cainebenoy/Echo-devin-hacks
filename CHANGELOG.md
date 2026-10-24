@@ -97,3 +97,17 @@
   `tsc` clean; 54/54 tests; clean build.
 - Limitations: shoulder-bin dimming also softens wall edges; acceptable
   trade-off, tunable.
+
+## 2026-10-24T22:35:00+05:30 — Open-air cue for gaps + level picker
+
+- Changed: `src/audio/synth.ts`, `src/audio/echo.ts` — each contiguous arc of
+  empty bins emits a panned airy whoosh so openings give a positive cue;
+  `src/game/loop.ts` — HUD "heard" chip says `OPENING ahead (airy whoosh)`
+  when facing a gap and hints `gap left/right` otherwise; `src/main.ts`,
+  `src/style.css` — clickable level-picker bar in visual mode with all levels
+  unlocked for testing.
+- Why: "absence of sound" masked by 23 echoing bins wasn't learnable; manual
+  testing had to replay from Level 1 on every refresh.
+- Validation: `tsc` clean; 54/54 tests; `vite build` clean.
+- Limitations: open-air cue is an addition to the spec's pure-silence rule,
+  documented in NOTES.md.

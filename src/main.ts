@@ -39,6 +39,7 @@ function boot(): void {
     </div>
     <div id="room-code"></div>
     <div id="status"></div>
+    <div id="level-pick"></div>
     <div id="keys-help"></div>
     <div id="caption"></div>`;
   const bootEl = app.querySelector('#boot')!;
@@ -47,6 +48,7 @@ function boot(): void {
   const captionEl = app.querySelector<HTMLElement>('#caption')!;
   const statusEl = app.querySelector<HTMLElement>('#status')!;
   const helpEl = app.querySelector<HTMLElement>('#keys-help')!;
+  const levelPick = app.querySelector<HTMLElement>('#level-pick')!;
 
   const results = new ResultsScreen(app);
   const overlay = new DebugOverlay(app);
@@ -193,10 +195,31 @@ function boot(): void {
   }
 
   // ── audio menu ────────────────────────────────────────────────────────
+  function renderLevelPick(): void {
+    const show = visual && phase === 'menu';
+    levelPick.classList.toggle('on', show);
+    levelPick.innerHTML = '';
+    if (!show) return;
+    levels.forEach((l, i) => {
+      const b = document.createElement('button');
+      const locked = !visual && !(l.meta.order <= progress.unlocked || progress.finishedAll);
+      b.textContent = `${l.meta.order}. ${l.meta.name}`;
+      b.className = i === menuIdx ? 'sel' : '';
+      if (locked) b.classList.add('locked');
+      b.onclick = () => {
+        menuIdx = i;
+        menuStatus();
+        if (!locked) startLevel(l);
+      };
+      levelPick.appendChild(b);
+    });
+  }
+
   function menuStatus(): void {
     const l = levels[menuIdx];
-    const locked = !(l.meta.order <= progress.unlocked || progress.finishedAll);
-    setStatus(`Menu — Level ${l.meta.order}: ${l.meta.name}${locked ? ' (locked)' : ''} — click to play, swipe to choose`);
+    const locked = !visual && !(l.meta.order <= progress.unlocked || progress.finishedAll);
+    setStatus(`Level ${l.meta.order}: ${l.meta.name} — pick a level below or press Space`);
+    renderLevelPick();
     if (visual) {
       overlay.show(true);
       overlay.render(l, {}, engine.ready ? engine : null, { menu: locked ? 'locked' : 'unlocked' });
@@ -227,6 +250,7 @@ function boot(): void {
     session?.stop();
     currentLevel = level;
     phase = 'playing';
+    renderLevelPick();
     setStatus(`Level ${level.meta.order} — ${level.meta.name}`, true);
     if (visual) overlay.show(true);
     session = new GameSession({

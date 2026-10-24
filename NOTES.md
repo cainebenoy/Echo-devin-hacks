@@ -76,3 +76,13 @@ a full wall, so a 2-cell gap read as a barely-audible ~15° notch. Amp is now
 additionally multiplied by `hits / raysPerBin`: partial bins dim in
 proportion, gaps read as a ~30° silent notch. Verified on Walls — the
 gap-facing bins are silent or ≤0.02 amp while full-coverage flanks stay loud.
+
+### Open-air cue + level picker (playability deviations)
+
+Pure silence as the cue for an opening proved unreadable in playtesting — the
+other 23 bins still echo and mask a single missing bin. Each contiguous arc
+of empty bins now also emits one soft airy whoosh (`openAir` buffer) panned
+to the opening's direction, so sweeping produces "tick-tick-whoosh" instead of
+"silence vs slightly less sound". In visual/testing mode the menu also shows
+a clickable level picker with all levels unlocked so testing doesn't require
+replaying from Level 1.

@@ -17,6 +17,7 @@ export interface SoundSet {
   loseSting: AudioBuffer;
   drip: AudioBuffer;
   earcon: AudioBuffer;       // two-tone hint cue for no-speech fallback
+  openAir: AudioBuffer;      // airy whoosh — a click's "non-return" from an opening
 }
 
 function noiseBuffer(ctx: BaseAudioContext, seconds: number, pink = false): AudioBuffer {
@@ -347,8 +348,20 @@ export async function synthesize(ctx: AudioContext): Promise<SoundSet> {
   });
   normalize(earcon, 0.6);
 
+  // ── Open-air return: soft airy whoosh — the click "leaving" through a gap ──
+  const openAir = await render(rate, 0.22, (o) => {
+    const src = o.createBufferSource();
+    src.buffer = noiseBuffer(o, 0.22);
+    const env = envGain(o, [[0, 0], [0.07, 0.5], [0.22, 0]]);
+    const bp = o.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 1100; bp.Q.value = 0.7;
+    src.connect(env).connect(bp).connect(o.destination);
+    src.start();
+  });
+  normalize(openAir, 0.8);
+
   return {
     click, footstepStone, footstepWood, footstepWater, bump, beacon,
-    breathing, growl, heartbeat, winSting, loseSting, drip, earcon,
+    breathing, growl, heartbeat, winSting, loseSting, drip, earcon, openAir,
   };
 }

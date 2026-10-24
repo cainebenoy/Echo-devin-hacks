@@ -137,6 +137,35 @@ html, body {
   white-space: nowrap;
 }
 #keys-help.on { opacity: 0.8; }
+#level-pick {
+  position: absolute;
+  bottom: 2.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  z-index: 46;
+}
+#level-pick.on { display: flex; }
+#level-pick button {
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 0.45rem 0.9rem;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+#level-pick button:hover, #level-pick button.sel {
+  background: rgba(103, 232, 249, 0.18);
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+#level-pick button.locked { opacity: 0.4; cursor: not-allowed; }
 
 /* ── Caption (no-speech fallback) ─────────────────────────────────── */
 #caption {
