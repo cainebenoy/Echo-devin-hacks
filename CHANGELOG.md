@@ -331,3 +331,13 @@
   checks — several entries had drifted (SHA, test counts, deploy status).
 - Validation: documentation diff review; no code changed.
 - Limitations: none.
+
+## 2026-10-25T04:45:00+05:30 — PWA update takeover fix
+
+- Changed: `vite.config.ts` — `workbox.skipWaiting` + `clientsClaim` so a new
+  service worker activates immediately instead of waiting for all old-version
+  tabs to close (the cause of users seeing stale builds after deploys).
+- Why: deployed UI changes appeared missing because the old SW kept serving
+  the cached shell.
+- Validation: `vite build` regenerates the SW with the new flags.
+- Limitations: tabs already open still need one reload to pick this up.

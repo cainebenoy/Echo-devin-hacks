@@ -22,6 +22,10 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg,webmanifest}'],
+        // Take control immediately — without these the new SW waits for all
+        // old-version tabs to close, so users keep seeing stale builds.
+        skipWaiting: true,
+        clientsClaim: true,
       },
     }),
   ],
