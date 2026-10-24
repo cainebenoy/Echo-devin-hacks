@@ -17,7 +17,7 @@ import { SpectateNet } from './spectate/net';
 import { startWatchPage } from './spectate/watch';
 import { startDrawPage } from './draw/editor';
 import { HunterLink, type HunterMsg } from './game/hunter';
-import { decodeCustom, customDef, validateCustomMap, STATUS_TEXT } from './custom/codec';
+import { decodeCustom, customDef, validateCustomMap, STATUS_TEXT, customHash } from './custom/codec';
 import { boardKey, type BoardRun } from './spectate/leaderboard';
 import { BoardUI, recordRun } from './spectate/boardui';
 import { parseLevel } from './world/level';
@@ -68,6 +68,20 @@ function boot(): void {
 
   const results = new ResultsScreen(app);
   const boardUi = new BoardUI(app);
+  // L/Shift+L work here too — the board hints at them wherever it appears.
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'l' && e.key !== 'L') return;
+    if ((e.target as HTMLElement | null)?.closest?.('input')) return;
+    const key = boardUi.currentKey ?? (currentLevel
+      ? boardKey({
+        levelId: currentLevel.meta.id,
+        customHash: currentLevel.meta.id === 'custom' ? customHash(currentLevel.map) : undefined,
+        assist,
+      })
+      : null);
+    if (e.shiftKey) boardUi.clearCurrent(key);
+    else boardUi.toggle(key);
+  });
   const overlay = new DebugOverlay(app);
   const tuning = loadTuning();
   const tuningPanel = new TuningPanel(app, tuning);

@@ -220,21 +220,22 @@ export function startWatchPage(root: HTMLElement): void {
     if ((e as KeyboardEvent).key === 'Enter') void join(hunterMode);
   });
   window.addEventListener('keydown', (e) => {
-    if ((e.target as HTMLElement | null)?.closest?.('input')) return;
+    const t = e.target as HTMLElement | null;
+    // A focused input eats keys — except one inside a hidden screen: the
+    // join form stays mounted (and focused) after it hides.
+    if (t?.closest?.('input') && !t.closest('.hidden')) return;
     if (e.key === 'c' || e.key === 'C') showCreature = !showCreature;
     if (e.key === 'v' || e.key === 'V') fogView = !fogView;
-    if ((e.key === 'l' || e.key === 'L') && e.shiftKey) boardUi.clearCurrent();
-    else if (e.key === 'l' || e.key === 'L') {
-      // Fall back to the watched level's board — for drawn rooms that means
-      // deriving the hash from the map, matching where runs were saved.
-      const key = lastBoardKey ?? (level
-        ? boardKey({
-          levelId: level.meta.id,
-          customHash: level.meta.id === 'custom' ? customHash(level.map) : undefined,
-        })
-        : null);
-      boardUi.toggle(key);
-    }
+    // Fall back to the watched level's board — for drawn rooms that means
+    // deriving the hash from the map, matching where runs were saved.
+    const key = lastBoardKey ?? (level
+      ? boardKey({
+        levelId: level.meta.id,
+        customHash: level.meta.id === 'custom' ? customHash(level.map) : undefined,
+      })
+      : null);
+    if ((e.key === 'l' || e.key === 'L') && e.shiftKey) boardUi.clearCurrent(key);
+    else if (e.key === 'l' || e.key === 'L') boardUi.toggle(key);
   });
   window.addEventListener('beforeunload', () => {
     if (hunterAcked) sub.send('hunter', { t: 'release', id: myId });

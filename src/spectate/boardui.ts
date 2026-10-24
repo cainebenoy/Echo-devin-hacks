@@ -120,12 +120,15 @@ export class BoardUI {
     }
   }
 
-  /** Confirm + clear the current board (Shift+L). */
-  clearCurrent(): void {
-    if (!this.currentKey) return;
-    if (window.confirm(`Clear the leaderboard for ${this.currentKey}?`)) {
-      clearBoard(this.currentKey);
-      if (this.visible) this.show(this.currentKey);
+  /**
+   * Confirm + clear a board (Shift+L). Takes the resolved key — without it
+   * a clear pressed before any show() would silently do nothing.
+   */
+  clearCurrent(key: string | null = this.currentKey): void {
+    if (!key) return;
+    if (window.confirm(`Clear the leaderboard for ${key}?`)) {
+      clearBoard(key);
+      this.show(key); // show the emptied board as the confirmation
     }
   }
 

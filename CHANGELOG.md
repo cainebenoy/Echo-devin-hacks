@@ -1,5 +1,21 @@
 # Change log
 
+## 2026-10-25T02:20:00+05:30 — Fix Shift+L board clear
+
+- Changed: `src/spectate/boardui.ts`, `src/spectate/watch.ts`, `src/main.ts`.
+- Why (user report "Shift+L not working"): three causes —
+  1. `clearCurrent()` read `currentKey`, which is only set by `show()`; a
+     Shift+L before the board had been displayed silently did nothing. It
+     now takes the resolved board key and shows the emptied board after.
+  2. On `/watch` the join-form code input stays focused after the form
+     hides, and the "ignore keys in inputs" guard swallowed every shortcut.
+     Inputs inside a `.hidden` screen no longer block shortcuts.
+  3. The game page displayed "L board · Shift+L clear" but had no binding;
+     L/Shift+L are now bound there too (falling back to the current level's
+     board, calm-aware).
+- Validation: `npx tsc --noEmit` clean; `vitest` 104/104; `vite build` clean.
+- Limitations: browser `confirm()` dialog is the confirmation UI.
+
 ## 2026-10-25T02:05:00+05:30 — Menu: drop backdrop panel, ping from the O
 
 - Changed: `src/main.ts`, `src/style.css`.
