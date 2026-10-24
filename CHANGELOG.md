@@ -317,3 +317,17 @@
 - Validation: `tsc` clean; `vite build` clean.
 - Limitations: the drone needs the post-tap audio context (menus only,
   never during play so it can't mask game cues).
+
+## 2026-10-25T04:25:00+05:30 — Doc accuracy pass (template compliance)
+
+- Changed: `SUBMISSION.md` — final implementation SHA `879127b`, test count
+  82/82 with the real suite description, limitations corrected (Vercel is
+  deployed; removed the stale "requires login" note), libraries updated
+  (fflate, qrcode). `README.md` — 82 tests, full key list (`M`, `T`, ` map),
+  Calm mode listed, stale "deploy not performed" removed. `DEMO.md` —
+  backquote/T key descriptions corrected. `AI_USAGE.md` — rows added for
+  the post-build sessions (playtest fixes, Batch D, Hold rebalance, UI work).
+- Why: AGENTS.md requires docs to match the submitted code and record real
+  checks — several entries had drifted (SHA, test counts, deploy status).
+- Validation: documentation diff review; no code changed.
+- Limitations: none.

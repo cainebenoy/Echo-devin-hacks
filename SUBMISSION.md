@@ -10,14 +10,15 @@
   players and for demos where the audience watches the blindfolded player on a
   projector (`/watch`). Helps demonstrate real-world human echolocation.
 - **Code repository URL:** https://github.com/cainebenoy/Echo-devin-hacks
-- **Final submitted implementation commit SHA:** `fa02c82` (implementation
+- **Final submitted implementation commit SHA:** `879127b` (implementation
   complete as of this commit; later commits are docs-only).
 - **Working demo URL or local demo steps:** https://echo-devin-hacks.vercel.app/
-  (spectator: `/watch`). Local: `npm install && npm run dev`. Demo flow in
-  [DEMO.md](DEMO.md).
+  (spectator: `/watch`, room editor: `/draw`, hunter mode: `/watch?role=hunter`).
+  Local: `npm install && npm run dev`. Demo flow in [DEMO.md](DEMO.md).
 - **Demo access requirements:** phone + wired earphones for the intended
   experience; desktop keyboard fallback works in any modern browser. Supabase
-  env vars only needed for spectator mode.
+  env vars only needed for spectator/hunter/phone-delivery (`/draw` QR links
+  work fully offline).
 
 ## Participants
 
@@ -35,17 +36,21 @@
 - **Demo walkthrough:** open `/watch` on a projector, `/?level=walls` on a
   phone, enter the 4-digit room code, blindfold the player; the audience
   watches clicks and echo lines live. Full script in [DEMO.md](DEMO.md).
-- **Checks performed and results:** `npm test` — 54/54 pass (level validation,
+- **Checks performed and results:** `npm test` — 82/82 pass (level validation,
   DDA/LOS/collision, BFS/A*/propagation, echo math, creature hearing/hunt/
-  catch, gesture state machine, orientation yaw). `npm run build` — clean
-  typecheck + production build + service worker. `vite preview` smoke-checked.
-- **Known limitations or incomplete features:** real-device iOS/Android pass
-  pending (spec §14); Vercel deploy requires login; portrait lock unavailable
-  on iOS Safari (heading math unaffected). See [NOTES.md](NOTES.md).
+  catch/cooldown, a scripted Hold beatability simulation, custom-room codec/
+  validation, hunter claim/rate-cap/fallback, gesture state machine,
+  orientation yaw). `npm run build` — clean typecheck + production build +
+  service worker.
+- **Known limitations or incomplete features:** real-device iOS/Android
+  playtest pending (spec §14); portrait lock unavailable on iOS Safari
+  (heading math unaffected); live Supabase spectator/hunter paths verified
+  by code review and unit tests but need a two-device live run. See
+  [NOTES.md](NOTES.md).
 - **Libraries, APIs, and public datasets used:** Vite, TypeScript, Vitest,
-  vite-plugin-pwa, @supabase/supabase-js; Web Audio / Web Speech /
-  deviceorientation / wake-lock / vibration browser APIs. No datasets or
-  assets — all audio is synthesized.
+  vite-plugin-pwa, @supabase/supabase-js, fflate, qrcode; Web Audio /
+  Web Speech / deviceorientation / wake-lock / vibration browser APIs.
+  No datasets or assets — all audio is synthesized.
 - **AI usage record:** [AI_USAGE.md](AI_USAGE.md)
 - **Development change log:** [CHANGELOG.md](CHANGELOG.md)
 

@@ -26,9 +26,9 @@
 
 ## Backup
 
-- Desktop: `Space` = click, `W` = walk, `A`/`D` or mouse = turn, `H` = hint,
-  `Esc` = pause, `` ` `` = debug overlay (rays, bins, audio stats, tuning
-  sliders).
+- Desktop: `Space` = click, `W`/`S` = walk, `A`/`D` or mouse = turn,
+  `H` = hint, `M` = voice, `Esc` = pause, `` ` `` = debug map,
+  `T` = tuning sliders.
 - A pre-recorded run video covers total network/device failure.
 
 ## Draw a room (Batch D)

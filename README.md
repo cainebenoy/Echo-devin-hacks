@@ -36,9 +36,10 @@ Built for **Devin Hack Kochi** (see
 3. Environment: spectator mode needs `VITE_SUPABASE_URL` and
    `VITE_SUPABASE_ANON_KEY` (see `.env.example`); the game works fully without
    them.
-4. Start: `npm run dev` (desktop backup demo: `Space` click, `W` walk, `A`/`D`
-   turn, `H` hint, `Esc` pause, `` ` `` debug overlay).
-5. Checks: `npm test` (78 unit tests), `npm run build` (typecheck + PWA build).
+4. Start: `npm run dev` (desktop backup demo: `Space` click, `W`/`S` walk,
+   `A`/`D` turn, `H` hint, `M` voice, `Esc` pause, `` ` `` debug map,
+   `T` tuning panel).
+5. Checks: `npm test` (82 unit tests), `npm run build` (typecheck + PWA build).
 6. Screenshots: `npm run screenshots` regenerates `screenshots/` from the real
    level maps and echo model.
 
@@ -52,13 +53,13 @@ Built for **Devin Hack Kochi** (see
   creature AI (wander/investigate/hunt/catch), 10 Hz run recorder, results
   screen with scrub-able replay, `/watch` spectator view, PWA offline, wake
   lock, walk-in-place step detection, `/draw` room editor (QR/link/Supabase
-  delivery, last-5 local rooms) and `/watch?role=hunter` hunter mode where a
+  delivery, last-5 local rooms), `/watch?role=hunter` hunter mode where a
   second person drives the creature through a fogged map (`V` toggles the
-  fog on the projector).
+  fog on the projector), and a Calm assist mode (slower duller creature,
+  louder beacon) for an easier run.
 - **Known limitations:** portrait lock is best-effort (unsupported on iOS
   Safari); speech depends on device voices (fallback mode documented in
-  NOTES.md); Vercel deploy not yet performed (requires `vercel login`);
-  real-device checklist in ECHO_SPEC.md §14 still pending.
+  NOTES.md); real-device checklist in ECHO_SPEC.md §14 still pending.
 - **Libraries, APIs, datasets:** Vite, TypeScript, Vitest, `vite-plugin-pwa`
   (workbox), `@supabase/supabase-js`. All audio synthesized at runtime; no
   assets or datasets.
