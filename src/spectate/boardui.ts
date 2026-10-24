@@ -49,8 +49,9 @@ export class BoardUI {
     this.rows.innerHTML = entries.length === 0
       ? '<li class="board-empty">No scores yet — finish a run.</li>'
       : entries.map((e, i) => {
-        const mins = Math.floor(e.duration / 60);
-        const secs = Math.round(e.duration % 60);
+        const total = Math.round(e.duration); // rounding secs alone can show 0:60
+        const mins = Math.floor(total / 60);
+        const secs = total % 60;
         const chips = [
           e.hunted ? '<span class="chip hunted">hunted</span>' : '',
           e.pebbles > 0 ? `<span class="chip">${e.pebbles} pebble${e.pebbles === 1 ? '' : 's'}</span>` : '',
@@ -114,7 +115,7 @@ export class BoardUI {
     el.id = 'name-prompt';
     el.innerHTML = `<div class="np-box">
       <p class="np-title">Name this player</p>
-      <input id="np-input" maxlength="24" autocomplete="off" spellcheck="false" />
+      <input id="np-input" maxlength="16" autocomplete="off" spellcheck="false" />
       <p class="np-hint">Enter saves · Esc discards</p>
     </div>`;
     const input = el.querySelector<HTMLInputElement>('#np-input')!;

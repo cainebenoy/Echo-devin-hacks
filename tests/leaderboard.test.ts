@@ -70,6 +70,9 @@ describe('names', () => {
     expect(sanitizeName('   ')).toBe('Anonymous');
     expect(sanitizeName('')).toBe('Anonymous');
     expect(sanitizeName('x'.repeat(16))).toBe('x'.repeat(16));
+    // Internal whitespace and hyphens survive — only the ends are trimmed.
+    expect(sanitizeName('Bob  Smith')).toBe('Bob Smith');
+    expect(sanitizeName('Anne-Marie')).toBe('Anne-Marie');
   });
 });
 

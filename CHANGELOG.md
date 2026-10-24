@@ -1,5 +1,36 @@
 # Change log
 
+## 2026-10-25T01:10:00+05:30 — Batch E self-review: edge-case fixes
+
+- Changed: `src/game/loop.ts`, `src/input/gestures.ts`,
+  `src/spectate/leaderboard.ts`, `src/spectate/boardui.ts`,
+  `tests/leaderboard.test.ts`.
+- Why: post-implementation review of D3/D4 found real edge cases:
+  1. `session.stop()` never marked the session ended, so a pebble still in
+     flight when the player retried/menud would land on the discarded
+     session — broadcasting a phantom ripple/arc on the next run and
+     replaying a clatter on the wrong level. `stop()` now sets `ended`,
+     which `landPebble` already checks.
+  2. `sanitizeName` carried a control-char regex written with literal
+     bytes (made the file binary to grep); rewritten with proper escapes
+     and whitespace collapsing so "Bob Smith"/"Anne-Marie" survive intact.
+  3. A wall-at-your-feet throw (dist ≈ 0) played the whoosh buffer at the
+     1.4x rate clamp — an audible squeak for a pebble that never flew.
+     Whoosh now skipped under 0.3 m.
+  4. `#board`/`#name-prompt` weren't in the gesture isUi list — a tap on
+     the leaderboard during the results screen could advance to the next
+     level. Added to the selector.
+  5. `pointerCancel` didn't reset the drag gate — a cancelled drag could
+     leak turn-emitting `dragging` state into the next touch.
+  6. Board time showed `0:60` for durations like 59.7 s (secs rounded
+     without a minute carry); name input maxlength (24) disagreed with
+     NAME_MAX (16).
+- Validation: `npx tsc --noEmit` clean; `vitest` 102/102 pass (new
+  whitespace/hyphen name assertions included); `vite build` + SW clean.
+- Limitations: a pebble thrown then paused mid-flight still lands (the
+  throw is physical — it can't un-throw); a run ranking below top-5 saves
+  but shows no visible highlight row.
+
 ## 2026-10-24T21:53:05+05:30 — Correct Devin Hack Kochi event guidance
 
 - Changed: corrected the current event name and AI tool guidance in `.github/pull_request_template.md`, `AGENTS.md`, `AI_USAGE.md`, `CHANGELOG.md`, `README.md`, `RULES.md`, `SUBMISSION.md`.

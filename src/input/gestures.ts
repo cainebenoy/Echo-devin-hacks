@@ -157,6 +157,7 @@ export class GestureRecognizer {
       this.everMulti = false;
       this.maxSimultaneous = 0;
       this.thirdJoinedAt = -1;
+      this.dragging = false;
     }
   }
 
@@ -174,7 +175,7 @@ export class GestureRecognizer {
   /** Wire real pointer events on an element. Returns a detach function. */
   attach(el: HTMLElement): () => void {
     const isUi = (e: PointerEvent) =>
-      (e.target as HTMLElement | null)?.closest?.('button,input,select,a,[data-ui],#tuning-panel');
+      (e.target as HTMLElement | null)?.closest?.('button,input,select,a,[data-ui],#tuning-panel,#board,#name-prompt');
     const down = (e: PointerEvent) => {
       if (isUi(e)) return;
       el.setPointerCapture?.(e.pointerId);

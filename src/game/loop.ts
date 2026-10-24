@@ -138,6 +138,9 @@ export class GameSession {
   }
 
   stop(): void {
+    // Marks ended so a pebble still in flight on a discarded session can't
+    // land — it would broadcast a phantom ripple/arc on the next run.
+    this.ended = true;
     cancelAnimationFrame(this.raf);
     this.beacon?.stop();
     this.breathing?.stop();
@@ -202,7 +205,8 @@ export class GameSession {
     }
     const from = { x: this.player.x, y: this.player.y };
     const th = pebbleLanding(this.level, from.x, from.y, this.player.heading);
-    this.playWhoosh(th);
+    // A wall at your feet has no flight — skip the whoosh entirely.
+    if (th.dist > 0.3) this.playWhoosh(th);
     window.setTimeout(() => this.landPebble(th, from), th.flightSec * 1000);
   }
 
