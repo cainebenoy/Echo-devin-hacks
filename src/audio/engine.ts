@@ -92,6 +92,17 @@ export class Engine {
     return p;
   }
 
+  /**
+   * StereoPanner that exaggerates left/right from relative angle `rel`.
+   * Placed AFTER an HRTF panner — HRTF alone is too subtle on speakers and
+   * has a front/back cone of confusion; this makes direction unmissable.
+   */
+  stereoAt(rel: number): StereoPannerNode {
+    const s = this.ctx.createStereoPanner();
+    s.pan.value = Math.max(-0.85, Math.min(0.85, Math.sin(rel) * 1.4));
+    return s;
+  }
+
   /** Centred panner (for footsteps, dry click). */
   centred(): PannerNode {
     const p = this.ctx.createPanner();

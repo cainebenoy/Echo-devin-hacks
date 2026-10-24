@@ -58,6 +58,7 @@ export class GameSession {
   private walkGesture = false;
   private stepBudget = 0;
   private nextBeat = 0;
+  private nextGrowl = 0;
   private nextDrip = 4;
   private nextPublish = 0;
   private ended = false;
@@ -211,7 +212,8 @@ export class GameSession {
     const g = ctx.createGain();
     g.gain.value = baseGain / Math.max(1, p.distance);
     const pan = this.deps.engine.pannerAt(p.rel);
-    src.connect(lp).connect(g).connect(pan).connect(this.deps.engine.sfxBus);
+    src.connect(lp).connect(g).connect(pan)
+      .connect(this.deps.engine.stereoAt(p.rel)).connect(this.deps.engine.sfxBus);
     this.deps.engine.track(src);
     src.start();
   }
@@ -305,6 +307,15 @@ export class GameSession {
           if (d < 3 && this.deps.isTouch) navigator.vibrate?.(40);
         }
       }
+      // Directional growl ticks — heartbeat says HOW CLOSE, these say WHICH
+      // WAY: positional growls from its real position while it tracks you.
+      const st = this.creature.state;
+      const growlEvery = st === 'hunt' ? 1.4 : st === 'investigate' ? 3 : 0;
+      if (growlEvery > 0 && this.runT >= this.nextGrowl) {
+        this.nextGrowl = this.runT + growlEvery;
+        this.playPositional(this.deps.sounds.growl,
+          this.creature.x, this.creature.y, st === 'hunt' ? 0.55 : 0.35);
+      }
       // Ambient drips in the hold.
       if (this.runT >= this.nextDrip) {
         this.nextDrip = this.runT + 4 + Math.random() * 6;
@@ -320,7 +331,11 @@ export class GameSession {
       const p = propagate(this.level, field,
         this.player.x, this.player.y, this.player.heading,
         e.col + 0.5, e.row + 0.5);
-      if (p) this.beacon.update(p.rel, p.distance, p.occluded);
+      // Wind gets clearly stronger when you're aimed at the exit — turn
+      // until it's centered AND fullest, then walk. Kills front/back
+      // confusion that pure HRTF panning can't solve.
+      if (p) this.beacon.update(p.rel, p.distance, p.occluded,
+        Math.abs(p.rel) < 0.6 ? 1.8 : 1);
     }
 
     this.recorder.tick(this.runT, this.player.x, this.player.y, this.player.heading,

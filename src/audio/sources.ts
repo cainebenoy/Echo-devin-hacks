@@ -12,6 +12,7 @@ export class PositionalLoop {
   private filter: BiquadFilterNode;
   private gain: GainNode;
   private panner: PannerNode;
+  private stereo: StereoPannerNode;
   private ctx: AudioContext;
   baseGain: number;
   /** Set true once started; double-start would throw. */
@@ -33,7 +34,9 @@ export class PositionalLoop {
     this.panner.distanceModel = 'inverse';
     this.panner.refDistance = 1;
     this.panner.rolloffFactor = 0;
-    this.src.connect(this.filter).connect(this.gain).connect(this.panner).connect(bus ?? engine.sfxBus);
+    this.stereo = this.ctx.createStereoPanner();
+    this.src.connect(this.filter).connect(this.gain).connect(this.panner)
+      .connect(this.stereo).connect(bus ?? engine.sfxBus);
   }
 
   start(when = 0): void {
@@ -57,6 +60,9 @@ export class PositionalLoop {
     const pz = -Math.cos(rel);
     this.panner.positionX.setTargetAtTime(px, t, 0.08);
     this.panner.positionZ.setTargetAtTime(pz, t, 0.08);
+    // Exaggerated stereo balance — HRTF alone reads as mush on speakers.
+    const pan = Math.max(-0.85, Math.min(0.85, Math.sin(rel) * 1.4));
+    this.stereo.pan.setTargetAtTime(pan, t, 0.08);
     // 1/d rolloff with an optional audibility floor — the beacon must stay
     // faintly audible across a long level; breathing (proximity cue) does not.
     const g = Math.max(this.minGain, (this.baseGain * extraGain) / Math.max(1, distance));

@@ -171,3 +171,18 @@
   proximity feedback; late levels were too punishing.
 - Validation: `tsc` clean; 54/54 tests; `vite build` clean.
 - Limitations: creature chase smoothness not verified on-device yet.
+
+## 2026-10-24T23:55:00+05:30 — Directional audio cues for beacon + creature
+
+- Changed: `src/audio/engine.ts` new `stereoAt()` StereoPanner helper
+  exaggerating left/right from relative angle. `src/audio/sources.ts`
+  `PositionalLoop` now chains stereo boost after the HRTF panner.
+  `src/game/loop.ts` — one-shot positional sounds get stereo boost; beacon
+  gains 1.8× when |rel| < ~34° (wind is fullest when aimed at the exit);
+  periodic positional growl ticks during hunt (1.4 s) and investigate (3 s).
+  `src/levels/hold.ts` — intro teaches heartbeat=closeness, growls=direction.
+- Why: HRTF panning alone gave no usable direction on speakers and has a
+  front/back cone of confusion; players couldn't tell where the exit or
+  creature was. Heartbeat only encoded distance.
+- Validation: `tsc` clean; 54/54 tests; `vite build` clean.
+- Limitations: perceptual clarity unverified until on-earphone playtest.

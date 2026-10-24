@@ -17,6 +17,7 @@ export const hold: LevelDef = {
         'The hold of an old ship, docked at Fort Kochi.',
         "Something is down here with you. It can't see either. It hunts by sound.",
         'Every click helps you. Every click helps it.',
+        'Your heartbeat tells you how close it is. Its growls tell you which way.',
         'Find the hatch.',
       ],
       win: 'You escaped the hold.',
