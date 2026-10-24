@@ -341,3 +341,14 @@
   the cached shell.
 - Validation: `vite build` regenerates the SW with the new flags.
 - Limitations: tabs already open still need one reload to pick this up.
+
+## 2026-10-25T05:00:00+05:30 — Fix permanently-visible tuning panel
+
+- Changed: `src/style.css` — added `#tuning-panel.hidden` and
+  `#debug-overlay.hidden { display: none }`. There was never a global
+  `.hidden` rule — only `.screen.hidden` and `#menu.hidden` existed, so
+  the tuning panel was visible on every page since it was added (the
+  overlay was saved by its no-op render + zero-size container).
+- Why: the panel was supposed to open only via `T`.
+- Validation: `vite build` clean; panel hidden until `T` toggles it.
+- Limitations: none.
