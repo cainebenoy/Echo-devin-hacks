@@ -303,3 +303,17 @@
   (The tuning panel was already hidden by default; T toggles it.)
 - Validation: `tsc` clean; 82/82 tests; `vite build` clean.
 - Limitations: none.
+
+## 2026-10-25T04:10:00+05:30 — Atmosphere pass (grain, vignette, drone)
+
+- Changed: `src/style.css` — animated film grain (feTurbulence, ~3% opacity)
+  and a breathing radial vignette over the whole app; a rare ~120 ms title
+  flicker every 14 s on boot/menu/watch headings; slower fade transitions
+  (0.9 s); a dimmer, slower sonar ping behind the menu. `src/main.ts` — a
+  low room-tone drone under the menu only: detuned 46/46.8 Hz sines plus
+  the breathing loop at 0.45× speed, ~5% gain, fading in/out with the menu.
+- Why: make the whole site feel quietly unsettling through atmosphere —
+  texture, darkness, and a felt-not-heard tone — not themed decoration.
+- Validation: `tsc` clean; `vite build` clean.
+- Limitations: the drone needs the post-tap audio context (menus only,
+  never during play so it can't mask game cues).

@@ -44,6 +44,7 @@ function boot(): void {
       <p class="code" id="speech-note"></p>
     </div>
     <div id="menu" class="hidden">
+      <div class="sonar"><i></i><i></i><i></i></div>
       <div class="menu-inner">
         <h1>ECHO</h1>
         <p class="tagline">A game played in total darkness, by sound alone.</p>
@@ -288,10 +289,45 @@ function boot(): void {
     return true;
   }
 
+  // ── menu ambience: a low room-tone drone — presence, not music ──────
+  let droneGain: GainNode | null = null;
+  function setDrone(on: boolean): void {
+    if (!sounds || !engine.ready) return;
+    if (!droneGain) {
+      const ctx = engine.ctx;
+      droneGain = ctx.createGain();
+      droneGain.gain.value = 0;
+      // Air: the breathing loop at half speed reads as room tone.
+      const air = ctx.createBufferSource();
+      air.buffer = sounds.breathing;
+      air.loop = true;
+      air.playbackRate.value = 0.45;
+      // Sub-bass: two detuned sines beat ~0.8 Hz — a subliminal pulse.
+      const og = ctx.createGain();
+      og.gain.value = 0.5;
+      const a1 = ctx.createOscillator();
+      a1.type = 'sine';
+      a1.frequency.value = 46;
+      const a2 = ctx.createOscillator();
+      a2.type = 'sine';
+      a2.frequency.value = 46.8;
+      air.connect(droneGain);
+      a1.connect(og);
+      a2.connect(og);
+      og.connect(droneGain);
+      droneGain.connect(engine.ambienceBus);
+      air.start();
+      a1.start();
+      a2.start();
+    }
+    droneGain.gain.setTargetAtTime(on ? 0.05 : 0, engine.ctx.currentTime, 1.2);
+  }
+
   // ── audio menu ────────────────────────────────────────────────────────
   function renderLevelPick(): void {
     const show = phase === 'menu';
     menuEl.classList.toggle('hidden', !show);
+    setDrone(show);
     levelPick.classList.toggle('on', show);
     levelPick.innerHTML = '';
     if (!show) return;
