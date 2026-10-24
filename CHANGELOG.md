@@ -368,3 +368,11 @@
 - Validation: `tsc` clean; `vite build` clean.
 - Limitations: ambience only on menu/results — never during play, so game
   cues stay clean.
+
+## 2026-10-25T05:30:00+05:30 — Watermark
+
+- Changed: `index.html`, `src/style.css` — a small `caine × devin` mark in
+  the bottom-left corner on every route (game, /watch, /draw); dim cyan,
+  non-interactive.
+- Validation: `vite build` clean.
+- Limitations: none.
