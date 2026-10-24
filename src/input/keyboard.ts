@@ -62,7 +62,11 @@ export class KeyboardInput {
     const click = () => {
       // Pointer lock only makes sense while a run is live — locking on the
       // menu/results screens hides the cursor and swallows button clicks.
-      if (this.lockWanted && document.pointerLockElement !== el) el.requestPointerLock?.();
+      // Chrome rejects re-locks for ~1 s after Esc — swallow that rejection.
+      if (this.lockWanted && document.pointerLockElement !== el) {
+        const p = el.requestPointerLock?.() as Promise<void> | undefined;
+        p?.catch?.(() => { /* relock cooldown — next click retries */ });
+      }
     };
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);

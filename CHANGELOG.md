@@ -1,6 +1,42 @@
 # Change log
 
-## 2026-10-25T05:30:00+05:30 — Full code-review hardening pass (18 findings)
+## 2026-10-25T05:55:00+05:30 — Follow-up fixes to the hardening pass
+
+- Changed: `vite.config.ts`, `src/style.css`, `src/main.ts`,
+  `src/narration/narrator.ts`, `src/input/keyboard.ts`, `src/game/loop.ts`.
+- Why (second review): verification of 63a64c5 found two broken fixes and
+  three smaller defects.
+- Changes:
+  - PWA update flow actually works now: `skipWaiting`/`clientsClaim` were
+    left on under `registerType: 'prompt'`, so the new SW never waited and
+    `onNeedRefresh` never fired — removed both; updates now genuinely defer
+    to menu/results/boot.
+  - `#results` `pan-y` only in visual mode — on phones, vertical swipes were
+    being claimed by the browser as scrolls, killing swipe-down retry /
+    swipe-up menu. `.results-inner` gets `margin: auto 0` so overflowing
+    content scrolls from the top instead of clipping the heading.
+  - `body.muted` now also applies when the device has no speech voices —
+    no-speech phones keep captions during play (previously invisible).
+    `Narrator.voiceReady` is public and `onAvailabilityChange` re-syncs the
+    class if speech dies at runtime.
+  - `params.size` (absent on iOS ≤16) replaced by `params.toString()` —
+    other URL params (e.g. `?visual=1`) no longer get stripped.
+  - A still-`paused` phase re-announces the pause line on `visible` —
+    the first one played while the page was hidden.
+  - A drawn room that fails decode/validation now consumes the accepting
+    tap instead of falling through and starting the selected level, so the
+    error message stays up.
+  - Beacon exit choice has 1 m hysteresis — the wind can't flicker between
+    two exits at near-equal path distance.
+  - `requestPointerLock` promise rejection swallowed (post-Esc cooldown).
+  - `isTouch` now requires a coarse primary pointer — touchscreen laptops
+    (Surface) get the desktop experience instead of the phone one.
+- Validation: `npx tsc --noEmit` clean; `vitest` 110/110; `vite build`
+  clean (new SW hash generated).
+- Limitations: still not browser-verified (localhost blocked); results
+  swipe fix and no-speech captions need one real phone check.
+
+## 2026-10-25T03:07:00+05:30 — Full code-review hardening pass (18 findings)
 
 - Changed: `src/input/keyboard.ts`, `src/style.css`, `src/draw/editor.ts`,
   `src/main.ts`, `src/spectate/watch.ts`, `src/game/loop.ts`,
@@ -66,6 +102,8 @@
   - Debug overlay renders at devicePixelRatio (was blurry on high-DPI).
   - PWA registerType → `prompt`: a deploy mid-event can no longer
     hard-reload a phone mid-run; updates apply on menu/results/boot.
+    (Amended in the follow-up entry: `skipWaiting`/`clientsClaim` had to
+    come off too, or the SW never waited and the gate never ran.)
   - `?custom=` consumed from the URL after loading (reload stays on menu).
 - Validation: `npx tsc --noEmit` clean; `vitest` 110/110 (13 files —
   new narrator caption/interrupt tests, caught-ranking and Anonymous-merge

@@ -451,8 +451,11 @@ body::after {
 
 
 /* ── Results ──────────────────────────────────────────────────────── */
-/* The results column can exceed small phone screens — let it scroll. */
-#results { overflow-y: auto; touch-action: pan-y; }
+/* The results column can exceed small phone screens — let it scroll.
+   pan-y only in visual mode: on a phone, vertical swipes must reach the
+   gesture recognizer (swipe-down retry / swipe-up menu), not scroll. */
+#results { overflow-y: auto; }
+body.visual #results { touch-action: pan-y; }
 #results .results-inner {
   display: flex;
   flex-direction: column;
@@ -461,6 +464,9 @@ body::after {
   padding: 1.2rem;
   width: 100%;
   max-width: 640px;
+  /* auto margins center when there's room and let the top reach the scroll
+     origin when there isn't — justify-content:center alone clips the top. */
+  margin: auto 0;
 }
 #results h1 {
   font-weight: 200;

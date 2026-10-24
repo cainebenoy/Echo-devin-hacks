@@ -87,6 +87,8 @@ export class GameSession {
   /** Identifies this run to spectators so rebroadcast 'start's dedupe. */
   private runId = '';
   private nextStartResend = 0;
+  /** Exit the beacon currently points at — hysteresis anchor. */
+  private beaconExit: { col: number; row: number } | null = null;
 
   constructor(deps: SessionDeps) {
     this.deps = deps;
@@ -109,6 +111,7 @@ export class GameSession {
     this.fieldCellX = this.fieldCellY = NaN;
     this.runId = `${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
     this.nextStartResend = 4;
+    this.beaconExit = null;
     this.player.spawn(level);
     this.deps.engine.setReverb(level.meta.rt60);
     this.recorder = new Recorder(level.meta.id, level.meta.name);
@@ -538,13 +541,20 @@ export class GameSession {
     // evade the threat first, then swells back as you create distance.
     if (this.beacon && field && this.level.exits.length > 0) {
       // Aim at the NEAREST exit by path distance — rooms with several exits
-      // must not guide you to a far one past a nearer way out.
-      let e = this.level.exits[0];
-      let best = Infinity;
+      // must not guide you to a far one past a nearer way out. Hysteresis:
+      // only switch when another exit is ≥1 m closer, so the wind can't
+      // flicker between two near-equal exits as you walk.
+      const dCur = this.beaconExit
+        ? fieldDist(field, this.beaconExit.col, this.beaconExit.row)
+        : -1;
+      let e = dCur >= 0 ? this.beaconExit! : this.level.exits[0];
+      let best = dCur >= 0 ? dCur : Infinity;
       for (const ex of this.level.exits) {
+        if (ex === e) continue;
         const d = fieldDist(field, ex.col, ex.row);
-        if (d >= 0 && d < best) { best = d; e = ex; }
+        if (d >= 0 && d < best - 1) { best = d; e = ex; }
       }
+      this.beaconExit = e;
       const p = propagate(this.level, field,
         this.player.x, this.player.y, this.player.heading,
         e.col + 0.5, e.row + 0.5);

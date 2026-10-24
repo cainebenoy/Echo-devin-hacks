@@ -24,10 +24,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg,webmanifest}'],
-        // Take control immediately — without these the new SW waits for all
-        // old-version tabs to close, so users keep seeing stale builds.
-        skipWaiting: true,
-        clientsClaim: true,
+        // No skipWaiting/clientsClaim — 'prompt' needs the new SW to actually
+        // WAIT so onNeedRefresh fires and main.ts can defer the reload to a
+        // safe screen (menu/results/boot) instead of killing a run mid-play.
       },
     }),
   ],

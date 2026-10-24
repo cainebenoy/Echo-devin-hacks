@@ -14,8 +14,12 @@ export class Narrator {
   private queue: string[] = [];
   private speaking = false;
   private voice: SpeechSynthesisVoice | null = null;
-  private voiceReady: Promise<void>;
+  /** Resolves once voice selection settles (voice found or fallback chosen). */
+  readonly voiceReady: Promise<void>;
   speechAvailable = true;
+  /** Fires when speechAvailable flips false after construction (e.g. the
+   *  first utterance never starts) — callers use it to keep captions on. */
+  onAvailabilityChange: (() => void) | null = null;
   /** When muted, lines are shown as captions with no robot speech. */
   muted = false;
   /** For the debug overlay: which voice (or fallback) is in use. */
@@ -222,6 +226,7 @@ export class Narrator {
         if (this.firstUtterance) {
           this.speechAvailable = false;
           this.voiceLabel = 'fallback (no onstart)';
+          this.onAvailabilityChange?.();
           try { speechSynthesis.cancel(); } catch { /* noop */ }
         }
         if (!speechSynthesis.speaking && !speechSynthesis.pending) finish();

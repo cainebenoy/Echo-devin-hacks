@@ -179,19 +179,30 @@ function boot(): void {
     },
     onToggleVoice: () => {
       const m = narrator.toggleMuted();
-      document.body.classList.toggle('muted', m);
+      syncMutedClass();
       setStatus(m ? 'Voice muted — captions only (M to enable)' : 'Voice enabled (M to mute)', phase === 'playing');
     },
     onThrow: () => { if (phase === 'playing') session?.throwPebble(); },
   });
 
-  const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  // Touchscreen laptops report maxTouchPoints>0 but are still pointer-first
+  // devices — only coarse-pointer devices (phones/tablets) get touch UX.
+  const isTouch = (('ontouchstart' in window) || navigator.maxTouchPoints > 0)
+    && !window.matchMedia('(pointer:fine)').matches;
   menuCta.textContent = isTouch
     ? 'tap a level to begin'
     : 'pick a level — or press Space to play';
   // Visual/testing mode: live map during play. On by default on desktop,
   // or anywhere via ?visual=1 (phone stays black without it).
   const visual = params.get('visual') === '1' || (!isTouch && params.get('visual') !== '0');
+  if (visual) document.body.classList.add('visual');
+  // 'muted' also covers devices with no speech at all — captions are then
+  // the only narration channel and must stay visible during play.
+  const syncMutedClass = () =>
+    document.body.classList.toggle('muted', narrator.muted || !narrator.speechAvailable);
+  syncMutedClass();
+  void narrator.voiceReady.then(syncMutedClass);
+  narrator.onAvailabilityChange = syncMutedClass;
   // Calm/assist mode: slower creature, duller hearing, louder beacon floor.
   let assist = params.get('assist') === '1';
   // localStorage can throw outright (blocked site data, Safari private) —
@@ -205,7 +216,6 @@ function boot(): void {
       narrator.setMuted(true);
     }
   } catch { /* blocked */ }
-  document.body.classList.toggle('muted', narrator.muted);
 
   function setStatus(text: string, keys = false): void {
     // One pill at the top: label plus a dim key row — no separate hint bar.
@@ -282,6 +292,9 @@ function boot(): void {
       // iOS leaves the context suspended/interrupted after an app switch —
       // without this the game comes back silent.
       if (engine.ready && engine.ctx.state !== 'running') void engine.ctx.resume();
+      // If we auto-paused on hide, the pause line played to nobody —
+      // say it again on return.
+      else if (phase === 'paused') narrator.say(MENU.pause);
     } else if (phase === 'playing') {
       // App switch / phone call mid-run — pause rather than let the
       // creature catch an unattended player.
@@ -337,8 +350,10 @@ function boot(): void {
         try {
           startLevel(parseLevel(customDef(payload)));
           // Consume the room link — a reload must not drop straight back in.
+          // (params.size doesn't exist on iOS ≤16 — serialize instead.)
           params.delete('custom');
-          history.replaceState(null, '', location.pathname + (params.size ? `?${params}` : ''));
+          const qs = params.toString();
+          history.replaceState(null, '', location.pathname + (qs ? `?${qs}` : ''));
         } catch {
           setStatus('That room link did not load — pick a level below');
           enterMenu();
@@ -383,12 +398,12 @@ function boot(): void {
     pendingCustom = null;
     if (!payload) {
       setStatus('That room could not be loaded');
-      return false;
+      return true; // consumed the tap — the error must not be overwritten
     }
     const v = validateCustomMap(payload.map);
     if (v.status !== 'ready') {
       setStatus(STATUS_TEXT[v.status]);
-      return false;
+      return true; // same — show the validation failure, don't start a level
     }
     results.hide();
     session?.stop();
