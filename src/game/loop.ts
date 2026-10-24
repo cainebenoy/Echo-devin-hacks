@@ -39,6 +39,9 @@ export interface SessionDeps {
   assist: boolean;
   /** Shared hunter-mode authority state (claim/target/fallback). */
   hunter: HunterLink;
+  /** When set, the run clock + creature stay frozen until begin() — a real
+   *  "start" gate so the input that starts the level can't also click. */
+  gateStart?: boolean;
   onEnd(outcome: Outcome, rec: Recording): void;
 }
 
@@ -70,6 +73,8 @@ export class GameSession {
   private nextDrip = 4;
   private nextPublish = 0;
   private ended = false;
+  /** False while the ready gate is up — nothing moves or listens yet. */
+  armed = true;
   private dragTurnDeg = 0;
   private pouch = new PebblePouch();
   private lastThrowAt = -Infinity;
@@ -82,6 +87,7 @@ export class GameSession {
     this.level = level;
     this.ended = false;
     this.paused = false;
+    this.armed = !this.deps.gateStart;
     this.runT = 0;
     this.hintIdx = 0;
     this.lastEcho = null;
@@ -99,9 +105,9 @@ export class GameSession {
       this.creature = new Creature();
       this.creature.spawn(level);
       if (this.deps.assist) this.creature.applyAssist();
-      this.breathing = new PositionalLoop(this.deps.engine, this.deps.sounds.breathing, 0.8);
-      this.breathing.start();
-      this.nextDrip = 3 + Math.random() * 4;
+      this.breathing = new PositionalLoop(this.deps.engine, this.deps.sounds.breathing, 0.5);
+      if (this.armed) this.breathing.start();
+      this.nextDrip = 6 + Math.random() * 6;
     } else {
       this.creature = null;
     }
@@ -110,10 +116,10 @@ export class GameSession {
       this.beacon = new PositionalLoop(
         this.deps.engine, this.deps.sounds.beacon, level.meta.beaconGain, this.deps.engine.ambienceBus,
         // Audibility floor: the beacon is the wayfinding cue, so it stays
-        // faintly present even across the longest level.
-        level.meta.beaconGain * (this.deps.assist ? 0.25 : 0.15),
+        // faintly present even across the longest level (and above creature noise).
+        level.meta.beaconGain * (this.deps.assist ? 0.3 : 0.22),
       );
-      this.beacon.start();
+      if (this.armed) this.beacon.start();
     }
 
     this.deps.net.event({
@@ -147,10 +153,19 @@ export class GameSession {
     this.beacon = this.breathing = null;
   }
 
+  /** Releases the ready gate — the run clock, inputs and creature start here. */
+  begin(): void {
+    if (this.armed) return;
+    this.armed = true;
+    this.last = performance.now();
+    this.breathing?.start();
+    this.beacon?.start();
+  }
+
   // ── input routed by the app ──────────────────────────────────────────
 
   handleGesture(e: GestureEvent): void {
-    if (this.ended || this.paused) return;
+    if (!this.armed || this.ended || this.paused) return;
     switch (e.type) {
       case 'tap': this.click(); break;
       case 'walkStart': this.walkGesture = true; break;
@@ -310,7 +325,10 @@ export class GameSession {
         }
       },
       onGrowl: (x: number, y: number) => {
-        this.playPositional(this.deps.sounds.growl, x, y, 1);
+        // Push the next directional tick back so the entry roar doesn't stack
+        // on top of a scheduled tick a tenth of a second later.
+        this.nextGrowl = this.runT + 2.4;
+        this.playPositional(this.deps.sounds.growl, x, y, 0.72);
       },
       onCatch: () => {
         this.endRun('caught');
@@ -358,7 +376,7 @@ export class GameSession {
   private frame(now: number): void {
     const dt = Math.min(0.05, Math.max(0, (now - this.last) / 1000));
     this.last = now;
-    if (this.paused || this.ended) return;
+    if (this.paused || this.ended || !this.armed) return;
     this.runT += dt;
 
     // Fallback turning kicks in if no orientation data 2 s after start.
@@ -428,12 +446,14 @@ export class GameSession {
         this.creature.x, this.creature.y);
       if (p) this.breathing?.update(p.rel, p.distance, p.occluded);
       // Heartbeat when path distance < huntEnter, rate + volume scale with
-      // closeness; a vibration pulse under 3 m warns without audio.
+      // closeness; a vibration pulse under 3 m warns without audio. Kept
+      // restrained (≤ 120 bpm, ≤ 0.58 gain) so echoes and the beacon stay
+      // intelligible during a chase instead of getting crushed into mush.
       const d = this.creature.distanceTo(field);
       const enter = this.creature.hearing.huntEnter;
       if (d >= 0 && d < enter) {
-        const bpm = 70 + ((enter - d) / Math.max(1, enter - 1)) * (150 - 70);
-        const gain = 0.45 + 0.55 * (1 - d / enter);
+        const bpm = 65 + ((enter - d) / Math.max(1, enter - 1)) * (120 - 65);
+        const gain = 0.22 + 0.36 * (1 - d / enter);
         if (this.runT >= this.nextBeat) {
           this.nextBeat = this.runT + 60 / bpm;
           this.playCentred(this.deps.sounds.heartbeat, gain);
@@ -442,19 +462,21 @@ export class GameSession {
       }
       // Directional growl ticks — heartbeat says HOW CLOSE, these say WHICH
       // WAY: positional growls from its real position while it tracks you.
+      // Spaced wide enough to leave silence between cues for your echoes.
       const st = this.creature.state;
-      const growlEvery = st === 'hunt' ? 1.4 : st === 'investigate' ? 3 : 0;
+      const growlEvery = st === 'hunt' ? 2.4 : st === 'investigate' ? 4.5 : 0;
       if (growlEvery > 0 && this.runT >= this.nextGrowl) {
         this.nextGrowl = this.runT + growlEvery;
         this.playPositional(this.deps.sounds.growl,
-          this.creature.x, this.creature.y, st === 'hunt' ? 0.55 : 0.35);
+          this.creature.x, this.creature.y, st === 'hunt' ? 0.42 : 0.28);
       }
-      // Ambient drips in the hold.
-      if (this.runT >= this.nextDrip) {
-        this.nextDrip = this.runT + 4 + Math.random() * 6;
+      // Ambient drips in the hold — skipped during an active hunt so they
+      // don't add another layer when the mix is already full.
+      if (st !== 'hunt' && this.runT >= this.nextDrip) {
+        this.nextDrip = this.runT + 7 + Math.random() * 8;
         const dx = this.player.x + (Math.random() * 8 - 4);
         const dy = this.player.y + (Math.random() * 8 - 4);
-        this.playPositional(this.deps.sounds.drip, dx, dy, 0.5);
+        this.playPositional(this.deps.sounds.drip, dx, dy, 0.35);
       }
     }
 

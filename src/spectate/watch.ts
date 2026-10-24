@@ -120,7 +120,7 @@ export function startWatchPage(root: HTMLElement): void {
       runStart = performance.now();
       ended = false;
       results.hide();
-      boardUi.hide(); // a new run clears any lingering leaderboard flash
+      boardUi.dismissAll(); // a new run clears any lingering board or open prompt
       form.classList.add('hidden');
       stage.classList.remove('hidden');
       hudLevel().textContent = e.levelName ?? '';

@@ -661,6 +661,9 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
 }
 #board.hidden { display: none; }
 #board h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   margin: 0 0 0.7rem;
   font-family: var(--mono);
   font-weight: 500;
@@ -669,7 +672,19 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
   color: var(--cyan-dim);
   text-transform: uppercase;
 }
-#board h2 span { color: var(--cyan); letter-spacing: 0.15em; text-transform: none; }
+#board h2 span { flex: 1; color: var(--cyan); letter-spacing: 0.15em; text-transform: none; }
+#board-close, .np-close {
+  background: none;
+  border: 1px solid var(--panel-border);
+  color: var(--dim);
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+#board-close:hover, .np-close:hover { color: var(--ink); border-color: var(--cyan); }
 #board ol { list-style: none; margin: 0; padding: 0; }
 #board li {
   display: flex;
@@ -762,13 +777,15 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
   box-shadow: 0 0 50px rgba(103, 232, 249, 0.1);
 }
 .np-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin: 0;
   font-family: var(--mono);
   font-size: 0.8rem;
   letter-spacing: 0.3em;
   color: var(--cyan-dim);
   text-transform: uppercase;
-  text-align: center;
 }
 #np-input {
   background: #05070d;
@@ -782,6 +799,21 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
   outline: none;
 }
 #np-input:focus { border-color: var(--cyan); }
+.np-btns { display: flex; gap: 0.6rem; justify-content: center; }
+.np-btns button {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: rgba(103, 232, 249, 0.08);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+.np-btns .np-save { background: var(--cyan); color: #05202a; border-color: var(--cyan); font-weight: 600; }
+.np-btns button:hover { border-color: var(--cyan); }
 .np-hint {
   margin: 0;
   text-align: center;
@@ -789,4 +821,61 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
   font-size: 0.62rem;
   letter-spacing: 0.15em;
   color: var(--dim);
+}
+
+/* ── Ready gate (Start button before each round) ─────────────────────── */
+#ready-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  padding: 2rem;
+  text-align: center;
+  background: radial-gradient(ellipse at 50% 48%, rgba(5, 9, 16, 0.72), rgba(3, 4, 8, 0.9) 75%);
+}
+#ready-gate.hidden { display: none; }
+#ready-gate .rg-level {
+  font-family: var(--mono);
+  font-size: clamp(1.3rem, 4vw, 2rem);
+  font-weight: 300;
+  letter-spacing: 0.28em;
+  color: var(--ink);
+  text-transform: uppercase;
+}
+#ready-gate .rg-sub {
+  max-width: 440px;
+  color: var(--dim);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+#ready-gate #rg-start {
+  margin-top: 0.5rem;
+  padding: 0.85rem 2.4rem;
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #05202a;
+  background: var(--cyan);
+  border: 1px solid var(--cyan);
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 0 32px rgba(103, 232, 249, 0.35);
+  transition: transform 0.12s, box-shadow 0.15s;
+}
+#ready-gate #rg-start:hover {
+  transform: scale(1.04);
+  box-shadow: 0 0 44px rgba(103, 232, 249, 0.55);
+}
+#ready-gate .rg-hint {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.16em;
+  color: var(--dim);
+  opacity: 0.7;
 }

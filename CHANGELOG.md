@@ -1,5 +1,51 @@
 # Change log
 
+## 2026-10-25T03:15:00+05:30 — Start gate, leaderboard dismiss, Hold audio declutter
+
+- Changed: `src/game/loop.ts`, `src/main.ts`, `src/spectate/boardui.ts`,
+  `src/spectate/watch.ts`, `src/style.css`.
+- Why (user playtest feedback):
+  1. **"Leaderboard not going out"** — the `#name-prompt` modal only
+     closed on Enter/Esc; clicking outside or starting another run left it
+     blocking the screen forever, and `#board` had no visible close button.
+  2. **"Fake click starting the game"** — picking a level dropped straight
+     into `'playing'`, so the next tap/Space to "get started" fired an
+     actual echolocation click (and on The Hold, immediately alerted the
+     creature before the player was ready).
+  3. **"Last round too hard because all the sounds are getting garbled"** —
+     during a hunt on The Hold, six layers stacked at once: heartbeat up
+     to 150 bpm at gain 1.0, directional growl ticks every 1.4 s (often
+     colliding with the entry roar), breathing at 0.8, footsteps, echoes,
+     and random water drips — crushing the compressor into mush and
+     drowning out the exit beacon.
+- Changes:
+  - **Dismissable leaderboard & prompt**: `#name-prompt` now has **Save /
+    Skip / ×** buttons and closes on backdrop click; `#board` has a **×**
+    close button and closes on `Escape`; new `boardUi.dismissAll()` clears
+    both the panel and any open/queued name prompt whenever a run starts
+    or the menu opens (game page and `/watch`).
+  - **Per-round Start gate (`#ready-gate`)**: `startLevel` now enters the
+    `'intro'` phase with `GameSession.armed = false` — intro narration
+    plays cleanly while the timer, creature, breathing, and beacon stay
+    held. Clicking **Start round** (or tapping / pressing Space or Enter)
+    calls `beginRun()` → `session.begin()`, arming the round *without*
+    firing a click.
+  - **Hold mix declutter**:
+    - Heartbeat capped at 65–120 bpm (was 70–150) and gain 0.22–0.58
+      (was 0.45–1.0) so it never crushes echoes in the compressor.
+    - Directional growl ticks spaced to 2.4 s in hunt / 4.5 s in
+      investigate (was 1.4 s / 3 s) at lower gain (0.42 / 0.28), and the
+      hunt-entry roar pushes `nextGrowl` forward by 2.4 s so two growls
+      never stack back-to-back.
+    - Breathing loop dropped from 0.8 → 0.5; ambient drips skipped
+      entirely during an active hunt and quieted to 0.35.
+    - Exit beacon audibility floor raised (0.15 → 0.22, calm 0.25 → 0.30)
+      so the way out stays audible through a chase.
+- Validation: `npx tsc --noEmit` clean; `vitest` 104/104; `vite build` clean.
+- Limitations: blindfolded phone players release the Start gate with any
+  tap (same gesture as before, now consumed cleanly as "begin" instead of
+  firing a click).
+
 ## 2026-10-25T02:55:00+05:30 — O-ping polish: em-centred, emitting O
 
 - Changed: `src/style.css`.

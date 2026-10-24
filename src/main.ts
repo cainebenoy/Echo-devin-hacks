@@ -56,6 +56,12 @@ function boot(): void {
     </div>
     <div id="room-code"></div>
     <div id="status"></div>
+    <div id="ready-gate" class="hidden">
+      <p class="rg-level" id="rg-level"></p>
+      <p class="rg-sub" id="rg-sub"></p>
+      <button id="rg-start">Start round</button>
+      <p class="rg-hint">or tap / press Space when ready — won't fire a click</p>
+    </div>
     <div id="caption"></div>`;
   const bootEl = app.querySelector('#boot')!;
   const codeEl = app.querySelector('#room-code')!;
@@ -65,6 +71,10 @@ function boot(): void {
   const levelPick = app.querySelector<HTMLElement>('#level-pick')!;
   const menuEl = app.querySelector<HTMLElement>('#menu')!;
   const menuCta = app.querySelector<HTMLElement>('#menu-cta')!;
+  const readyEl = app.querySelector<HTMLElement>('#ready-gate')!;
+  const rgLevel = app.querySelector<HTMLElement>('#rg-level')!;
+  const rgSub = app.querySelector<HTMLElement>('#rg-sub')!;
+  const rgBtn = app.querySelector<HTMLButtonElement>('#rg-start')!;
 
   const results = new ResultsScreen(app);
   const boardUi = new BoardUI(app);
@@ -120,16 +130,23 @@ function boot(): void {
   const keyboard = new KeyboardInput({
     onClick: () => {
       if (phase === 'playing') session?.click();
+      else if (phase === 'intro') beginRun();
       else if (phase === 'menu') {
         const l = levels[menuIdx];
         if (l.meta.order <= progress.unlocked || progress.finishedAll) startLevel(l);
       }
     },
     onHint: () => { if (phase === 'playing') session?.hint(); },
-    onPause: () => togglePause(),
+    onPause: () => {
+      if (phase === 'intro') { session?.stop(); session = null; enterMenu(); }
+      else togglePause();
+    },
     onDebugToggle: () => overlay.toggle(),
     onTuningToggle: () => tuningPanel.toggle(),
-    onSkipSpeech: () => narrator.clear(),
+    onSkipSpeech: () => {
+      narrator.clear();
+      if (phase === 'intro') beginRun();
+    },
     onToggleVoice: () => {
       const m = narrator.toggleMuted();
       setStatus(m ? 'Voice muted — captions only (M to enable)' : 'Voice enabled (M to mute)', phase === 'playing');
@@ -446,7 +463,8 @@ function boot(): void {
 
   function enterMenu(): void {
     phase = 'menu';
-    boardUi.hide(); // a lingering leaderboard flash must not ride into the menu
+    readyEl.classList.add('hidden');
+    boardUi.dismissAll(); // clear lingering board flash AND any open name prompt
     menuIdx = Math.min(menuIdx, levels.length - 1);
     const l = levels[menuIdx];
     menuStatus();
@@ -457,11 +475,18 @@ function boot(): void {
   function startLevel(level: Level): void {
     if (!sounds) return;
     session?.stop();
-    boardUi.hide(); // a lingering leaderboard flash must not cover gameplay
+    boardUi.dismissAll(); // clear lingering board flash AND any open name prompt
     currentLevel = level;
-    phase = 'playing';
+    // Stage in 'intro' behind the Start gate — the intro narration plays,
+    // the timer and creature stay frozen, and the gesture that entered the
+    // level (or the next tap to begin) can NEVER fire a fake first click.
+    phase = 'intro';
     renderLevelPick();
     setStatus(`Level ${level.meta.order} — ${level.meta.name}`, true);
+    rgLevel.textContent = `${level.meta.order} · ${level.meta.name}`;
+    const intro = level.meta.narration.intro;
+    rgSub.textContent = intro[intro.length - 1] ?? '';
+    readyEl.classList.remove('hidden');
     session = new GameSession({
       engine,
       sounds,
@@ -475,10 +500,23 @@ function boot(): void {
       isTouch,
       assist,
       hunter: hunterLink,
+      gateStart: true,
       onEnd: onRunEnd,
     });
     session.start(level);
   }
+
+  /** Releases the Start gate — begins the clock + creature without clicking. */
+  function beginRun(): void {
+    if (phase !== 'intro') return;
+    readyEl.classList.add('hidden');
+    phase = 'playing';
+    session?.begin();
+  }
+  rgBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    beginRun();
+  });
 
   function onRunEnd(outcome: 'win' | 'caught', rec: Recording): void {
     lastRec = rec;
@@ -563,6 +601,11 @@ function boot(): void {
         }
         break;
       }
+      case 'intro':
+        // Any tap / swipe / hold releases the Start gate without firing a
+        // click — blindfolded players just tap when the intro stops talking.
+        if (e.type === 'tap' || e.type === 'walkStart') beginRun();
+        break;
       case 'playing':
         if (e.type === 'threeFingerTap') {
           togglePause();

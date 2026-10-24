@@ -28,12 +28,23 @@ export class BoardUI {
     this.panel.id = 'board';
     this.panel.className = 'hidden';
     this.panel.innerHTML = `
-      <h2>LEADERBOARD <span id="board-key"></span></h2>
+      <h2>LEADERBOARD <span id="board-key"></span> <button id="board-close" title="Close (L / Esc)">×</button></h2>
       <ol id="board-rows"></ol>
-      <p class="board-hint">L board · Shift+L clear · click a row to edit</p>`;
+      <p class="board-hint">L / Esc close · Shift+L clear · click a row to edit</p>`;
     parent.appendChild(this.panel);
     this.rows = this.panel.querySelector('#board-rows')!;
     this.keyLabel = this.panel.querySelector('#board-key')!;
+    this.panel.querySelector('#board-close')!.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.hide();
+    });
+    // Escape also dismisses an open board (when no name prompt owns focus).
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.visible && !this.promptOpen) {
+        e.stopPropagation();
+        this.hide();
+      }
+    });
     this.banner = document.createElement('div');
     this.banner.id = 'record-banner';
     this.banner.className = 'hidden';
@@ -167,19 +178,41 @@ export class BoardUI {
     const el = document.createElement('div');
     el.id = 'name-prompt';
     el.innerHTML = `<div class="np-box">
-      <p class="np-title">${title}</p>
-      <input id="np-input" maxlength="16" autocomplete="off" spellcheck="false" />
-      <p class="np-hint">Enter saves · Esc discards</p>
+      <p class="np-title">${title} <button class="np-close" title="Skip (Esc)">×</button></p>
+      <input id="np-input" maxlength="16" placeholder="Anonymous" autocomplete="off" spellcheck="false" />
+      <div class="np-btns">
+        <button class="np-save">Save</button>
+        <button class="np-skip">Skip</button>
+      </div>
+      <p class="np-hint">Enter saves · Esc or click outside skips</p>
     </div>`;
     const input = el.querySelector<HTMLInputElement>('#np-input')!;
+    const save = () => { const v = input.value; this.closePrompt(); cb(v); };
+    const skip = () => { this.closePrompt(); cb(null); };
     input.addEventListener('keydown', (e) => {
       e.stopPropagation();
-      if (e.key === 'Enter') { const v = input.value; this.closePrompt(); cb(v); }
-      else if (e.key === 'Escape') { this.closePrompt(); cb(null); }
+      if (e.key === 'Enter') save();
+      else if (e.key === 'Escape') skip();
+    });
+    el.querySelector('.np-save')!.addEventListener('click', (e) => { e.stopPropagation(); save(); });
+    el.querySelector('.np-skip')!.addEventListener('click', (e) => { e.stopPropagation(); skip(); });
+    el.querySelector('.np-close')!.addEventListener('click', (e) => { e.stopPropagation(); skip(); });
+    // Backdrop click — previously only Enter/Esc dismissed, so a mouse user
+    // clicking outside left the modal blocking the page indefinitely.
+    el.addEventListener('click', (e) => {
+      if (e.target === el) skip();
     });
     this.promptEl = el;
     document.body.appendChild(el);
     input.focus();
+  }
+
+  /** Dismiss everything — panel, flash timer, and any open/queued prompts. */
+  dismissAll(): void {
+    this.hide();
+    this.pending.length = 0;
+    this.promptOpen = false;
+    this.closePrompt();
   }
 
   private closePrompt(): void {
