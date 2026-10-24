@@ -150,32 +150,49 @@ export function playEcho(engine: Engine, clickBuffer: AudioBuffer, openAir: Audi
     src.start(now);
   }
 
+  const signed = (r: number) => (r > Math.PI ? r - 2 * Math.PI : r);
+
+  // Check whether an opening is within the forward cone (±25°).
+  const openAhead = echo.openings.find((o) => Math.abs(signed(o.rel)) <= Math.max(0.44, o.span / 2));
+
   for (const bin of echo.bins) {
+    const off = Math.abs(signed(bin.rel));
+    // Focus the ear forward: straight-ahead echoes play full, peripheral/rear
+    // bins drop to a quiet room-halo so they don't mask what's in front.
+    const focus = off < 0.35 ? 1 : off < 0.9 ? 0.35 : 0.12;
     const src = ctx.createBufferSource();
     src.buffer = clickBuffer;
+    // Pitch encodes distance for forward returns: close = sharper, far = lower.
+    if (off < 0.5) {
+      src.playbackRate.value = Math.max(0.65, Math.min(1.45, 1.4 - bin.dist * 0.1));
+    }
     const lp = ctx.createBiquadFilter();
     lp.type = 'lowpass';
     lp.frequency.value = bin.cutoff;
     const g = ctx.createGain();
-    g.gain.value = bin.amp;
+    g.gain.value = bin.amp * focus * (openAhead ? 0.35 : 1);
     const pan = engine.pannerAt(bin.rel);
     src.connect(lp).connect(g).connect(pan).connect(engine.sfxBus);
     const send = ctx.createGain();
-    send.gain.value = t.reverbAmount;
+    send.gain.value = t.reverbAmount * focus;
     src.connect(send).connect(engine.reverbSend);
     engine.track(src);
     src.start(now + bin.delay);
   }
 
-  // One airy cue per opening, panned to its direction — silence made legible.
+  // Opening cue: loud centred chime when pointing at the gap, soft panned hint
+  // when the gap is off to the side — so sweeping gives "tick … tick … CHIME".
   for (const op of echo.openings) {
+    const off = Math.abs(signed(op.rel));
+    const ahead = off <= Math.max(0.44, op.span / 2);
     const src = ctx.createBufferSource();
     src.buffer = openAir;
+    src.playbackRate.value = ahead ? 1.0 : 0.78;
     const g = ctx.createGain();
-    g.gain.value = Math.min(0.22, 0.08 + op.span * 0.06);
-    const pan = engine.pannerAt(op.rel);
+    g.gain.value = ahead ? 0.55 : 0.16;
+    const pan = ahead ? engine.centred() : engine.pannerAt(op.rel);
     src.connect(g).connect(pan).connect(engine.sfxBus);
     engine.track(src);
-    src.start(now + 0.08);
+    src.start(now + 0.05);
   }
 }

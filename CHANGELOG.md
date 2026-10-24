@@ -121,3 +121,16 @@
 - Why: speechSynthesis voice is slow and robotic, blocking testing.
 - Validation: `tsc` clean; 54/54 tests; `vite build` clean.
 - Limitations: none identified.
+
+## 2026-10-24T22:55:00+05:30 — Forward-focused echoes + chime for openings
+
+- Changed: `src/audio/synth.ts`, `src/audio/echo.ts`, `src/game/loop.ts` —
+  replaced the noise-whoosh opening cue with a warm 3-note chime; attenuated
+  peripheral/rear echo bins so the forward return dominates; pitch-shifted
+  forward echoes by distance (close = higher, far = lower); loud centred
+  chime when facing the gap (±25°), soft panned hint when off-angle.
+- Why: 24 simultaneous echoes + noise whoosh all blurred together; players
+  couldn't tell wall from gap.
+- Validation: `tsc` clean; 54/54 tests; `vite build` clean.
+- Limitations: forward-focus + chime are playability additions to the spec's
+  equal-bin model, documented in NOTES.md.

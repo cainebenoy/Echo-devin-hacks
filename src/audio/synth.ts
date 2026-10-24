@@ -348,17 +348,18 @@ export async function synthesize(ctx: AudioContext): Promise<SoundSet> {
   });
   normalize(earcon, 0.6);
 
-  // ── Open-air return: soft airy whoosh — the click "leaving" through a gap ──
-  const openAir = await render(rate, 0.22, (o) => {
-    const src = o.createBufferSource();
-    src.buffer = noiseBuffer(o, 0.22);
-    const env = envGain(o, [[0, 0], [0.07, 0.5], [0.22, 0]]);
-    const bp = o.createBiquadFilter();
-    bp.type = 'bandpass'; bp.frequency.value = 1100; bp.Q.value = 0.7;
-    src.connect(env).connect(bp).connect(o.destination);
-    src.start();
+  // ── Open-air return: warm 2-note chime — unmistakable "opening ahead" ──
+  const openAir = await render(rate, 0.45, (o) => {
+    for (const [f, t0, g0] of [[523.25, 0, 0.45], [659.25, 0.07, 0.55], [783.99, 0.14, 0.4]] as const) {
+      const osc = o.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = f;
+      const g = envGain(o, [[t0, 0.001], [t0 + 0.015, g0], [t0 + 0.28, 0]]);
+      osc.connect(g).connect(o.destination);
+      osc.start(t0); osc.stop(t0 + 0.3);
+    }
   });
-  normalize(openAir, 0.8);
+  normalize(openAir, 0.85);
 
   return {
     click, footstepStone, footstepWood, footstepWater, bump, beacon,

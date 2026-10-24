@@ -388,9 +388,9 @@ export class GameSession {
     let heard = '—';
     if (this.lastEcho) {
       const signed = (r: number) => (r > Math.PI ? r - 2 * Math.PI : r);
-      const openAhead = this.lastEcho.openings.find((o) => Math.abs(signed(o.rel)) <= Math.max(0.35, o.span / 2));
+      const openAhead = this.lastEcho.openings.find((o) => Math.abs(signed(o.rel)) <= Math.max(0.44, o.span / 2));
       if (openAhead) {
-        heard = 'OPENING ahead (airy whoosh)';
+        heard = 'OPENING AHEAD — chime! walk forward (W)';
       } else if (this.lastEcho.bins.length === 0) {
         heard = 'silence (opening)';
       } else {
