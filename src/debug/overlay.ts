@@ -10,7 +10,6 @@ export class DebugOverlay {
   el: HTMLElement;
   private canvas: HTMLCanvasElement;
   private statsEl: HTMLElement;
-  private captionEl: HTMLElement;
   visible = false;
   /** Visual/testing mode: larger always-on map for desktop testing. */
   visual = false;
@@ -19,11 +18,10 @@ export class DebugOverlay {
     this.el = document.createElement('div');
     this.el.id = 'debug-overlay';
     this.el.className = 'hidden';
-    this.el.innerHTML = `<canvas></canvas><div class="dbg-stats"></div><div class="dbg-caption"></div>`;
+    this.el.innerHTML = `<canvas></canvas><div class="dbg-stats"></div>`;
     parent.appendChild(this.el);
     this.canvas = this.el.querySelector('canvas')!;
     this.statsEl = this.el.querySelector('.dbg-stats')!;
-    this.captionEl = this.el.querySelector('.dbg-caption')!;
   }
 
   setVisual(v: boolean): void {
@@ -41,10 +39,6 @@ export class DebugOverlay {
     this.el.classList.toggle('hidden', !v);
   }
 
-  setCaption(text: string): void {
-    this.captionEl.textContent = text;
-  }
-
   render(level: Level | null, state: RenderState, engine: Engine | null, extra: Record<string, string>): void {
     if (!this.visible) return;
     const w = this.visual
@@ -58,12 +52,16 @@ export class DebugOverlay {
       this.canvas.height = h;
     }
     if (level) renderMap(this.canvas, level, state);
+    // Visual mode shows only what the player needs (heard/creature/heading).
+    // Engine internals stay in the non-visual debug overlay.
     const lat = engine?.latencyInfo ?? { baseLatency: 0, outputLatency: 0 };
-    const stats: [string, string][] = [
-      ['voices', String(engine?.voiceCount ?? 0)],
-      ['latency', `${((lat.baseLatency + lat.outputLatency) * 1000).toFixed(0)}ms`],
-      ...Object.entries(extra),
-    ];
+    const stats: [string, string][] = this.visual
+      ? Object.entries(extra)
+      : [
+        ['voices', String(engine?.voiceCount ?? 0)],
+        ['latency', `${((lat.baseLatency + lat.outputLatency) * 1000).toFixed(0)}ms`],
+        ...Object.entries(extra),
+      ];
     if (this.visual) {
       this.statsEl.innerHTML = stats.map(([k, v]) =>
         `<div class="chip${k === 'heard' ? ' heard' : ''}"><span>${k}</span><b>${v}</b></div>`).join('');

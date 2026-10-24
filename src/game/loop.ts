@@ -457,17 +457,11 @@ export class GameSession {
       }
     }
     this.deps.overlay.render(this.level, state, this.deps.engine, {
-      level: `${this.level.meta.name} · ${this.runT.toFixed(1)}s`,
-      heading: `${Math.round(this.player.heading / DEG)}°`,
       heard,
-      clicks: `${this.recorder.data.clicks}`,
-      bumps: `${this.recorder.data.bumps}`,
-      creature: this.creature
-        ? `${this.creature.state} ${(f => f && this.creature ? this.creature.distanceTo(f).toFixed(1) + 'm' : '—')(this.currentField())}`
-        : '—',
-      ...(this.deps.assist ? { assist: 'on' } : {}),
-      fallback: this.sensorsFallback ? 'drag-turn' : 'sensors',
-      voice: this.deps.narrator.voiceLabel,
+      ...(this.creature
+        ? { creature: `${this.creature.state} ${(f => f && this.creature ? this.creature.distanceTo(f).toFixed(1) + 'm' : '—')(this.currentField())}` }
+        : {}),
+      heading: `${Math.round(this.player.heading / DEG)}°`,
     });
   }
 

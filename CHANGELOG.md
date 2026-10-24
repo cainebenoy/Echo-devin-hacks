@@ -234,3 +234,17 @@
 - Validation: `tsc` clean; 78/78 tests; `vite build` clean.
 - Limitations: Supabase realtime paths untested end-to-end pending env
   vars on Vercel; /draw needs the Vercel rewrite for direct links.
+
+## 2026-10-25T02:00:00+05:30 — Declutter the desktop visual UI
+
+- Changed: `src/debug/overlay.ts` — visual-mode HUD chips trimmed to
+  heard/creature/heading (engine internals only in non-visual debug mode);
+  dead dbg-caption element removed. `src/game/loop.ts` — extras slimmed
+  accordingly. `src/main.ts` — key hints merged into the status pill (one
+  element at top), separate `#keys-help` bar removed; level picker split
+  into a levels row + a dimmer utility row (Calm, Draw). `src/style.css` —
+  matching layout updates.
+- Why: during desktop play the screen had status pill + hint bar + ~10
+  stat chips + room code + caption all floating at once.
+- Validation: `tsc` clean; 78/78 tests; `vite build` clean.
+- Limitations: none.

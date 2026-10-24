@@ -46,14 +46,12 @@ function boot(): void {
     <div id="room-code"></div>
     <div id="status"></div>
     <div id="level-pick"></div>
-    <div id="keys-help"></div>
     <div id="caption"></div>`;
   const bootEl = app.querySelector('#boot')!;
   const codeEl = app.querySelector('#room-code')!;
   const speechNote = app.querySelector('#speech-note')!;
   const captionEl = app.querySelector<HTMLElement>('#caption')!;
   const statusEl = app.querySelector<HTMLElement>('#status')!;
-  const helpEl = app.querySelector<HTMLElement>('#keys-help')!;
   const levelPick = app.querySelector<HTMLElement>('#level-pick')!;
 
   const results = new ResultsScreen(app);
@@ -127,13 +125,19 @@ function boot(): void {
     narrator.setMuted(true);
   }
 
-  function setStatus(text: string, help = false): void {
-    statusEl.textContent = text;
-    statusEl.classList.toggle('on', !!text && visual);
-    helpEl.classList.toggle('on', help && visual);
-    if (help) {
-      helpEl.textContent = 'Space click · W/S walk · A/D turn · H hint · M voice · Esc pause · ` tuning';
+  function setStatus(text: string, keys = false): void {
+    // One pill at the top: label plus a dim key row — no separate hint bar.
+    statusEl.innerHTML = '';
+    const label = document.createElement('span');
+    label.textContent = text;
+    statusEl.appendChild(label);
+    if (keys && visual) {
+      const k = document.createElement('span');
+      k.className = 'keys';
+      k.textContent = 'Space click · W/S walk · A/D turn · H hint · M voice · Esc pause · ` tuning';
+      statusEl.appendChild(k);
     }
+    statusEl.classList.toggle('on', !!text && visual);
   }
 
   function earcon(): void {
@@ -280,6 +284,8 @@ function boot(): void {
     levelPick.classList.toggle('on', show);
     levelPick.innerHTML = '';
     if (!show) return;
+    const rowLevels = document.createElement('div');
+    rowLevels.className = 'pick-levels';
     levels.forEach((l, i) => {
       const b = document.createElement('button');
       const locked = !visual && !(l.meta.order <= progress.unlocked || progress.finishedAll);
@@ -291,8 +297,10 @@ function boot(): void {
         menuStatus();
         if (!locked) startLevel(l);
       };
-      levelPick.appendChild(b);
+      rowLevels.appendChild(b);
     });
+    const rowUtils = document.createElement('div');
+    rowUtils.className = 'pick-utils';
     const calm = document.createElement('button');
     calm.textContent = assist ? 'Calm: on' : 'Calm: off';
     calm.className = assist ? 'sel' : '';
@@ -301,17 +309,19 @@ function boot(): void {
       localStorage.setItem('echo.assist', assist ? '1' : '0');
       renderLevelPick();
     };
-    levelPick.appendChild(calm);
+    rowUtils.appendChild(calm);
     const draw = document.createElement('button');
     draw.textContent = '✎ Draw a room';
     draw.onclick = () => { location.href = '/draw'; };
-    levelPick.appendChild(draw);
+    rowUtils.appendChild(draw);
+    levelPick.appendChild(rowLevels);
+    levelPick.appendChild(rowUtils);
   }
 
   function menuStatus(): void {
     const l = levels[menuIdx];
     const locked = !visual && !(l.meta.order <= progress.unlocked || progress.finishedAll);
-    setStatus(`Level ${l.meta.order}: ${l.meta.name} — pick a level below or press Space${assist ? ' · calm' : ''}`);
+    setStatus(`Level ${l.meta.order}: ${l.meta.name}${assist ? ' · calm' : ''}`);
     renderLevelPick();
     if (visual) {
       overlay.show(true);

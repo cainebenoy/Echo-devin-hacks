@@ -119,36 +119,39 @@ html, body {
   opacity: 0;
   z-index: 45;
   pointer-events: none;
-  white-space: nowrap;
+  white-space: normal;
+  max-width: 92vw;
+  text-align: center;
+  line-height: 1.5;
 }
 #status.on { opacity: 1; }
-#keys-help {
-  position: absolute;
-  bottom: 0.8rem;
-  left: 50%;
-  transform: translateX(-50%);
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
+#status .keys {
+  display: block;
   color: var(--dim);
-  opacity: 0;
-  z-index: 45;
-  pointer-events: none;
-  white-space: nowrap;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  margin-top: 0.15rem;
 }
-#keys-help.on { opacity: 0.8; }
 #level-pick {
   position: absolute;
   bottom: 2.2rem;
   left: 50%;
   transform: translateX(-50%);
   display: none;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
   z-index: 46;
 }
 #level-pick.on { display: flex; }
+#level-pick .pick-levels, #level-pick .pick-utils {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+#level-pick .pick-utils button { opacity: 0.65; font-size: 0.72rem; padding: 0.35rem 0.7rem; }
+#level-pick .pick-utils button:hover, #level-pick .pick-utils button.sel { opacity: 1; }
 #level-pick button {
   background: var(--panel);
   color: var(--ink);
@@ -241,13 +244,7 @@ html, body {
 .dbg-stats .chip b { color: var(--ink); font-weight: 500; }
 .dbg-stats .chip.heard { border-color: rgba(103, 232, 249, 0.45); }
 .dbg-stats .chip.heard b { color: var(--cyan); }
-#debug-overlay .dbg-caption {
-  position: absolute;
-  bottom: 8px;
-  left: 10px;
-  font: 12px var(--mono);
-  color: #ffd166;
-}
+
 
 /* ── Results ──────────────────────────────────────────────────────── */
 #results .results-inner {
