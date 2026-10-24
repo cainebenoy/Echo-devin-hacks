@@ -18,6 +18,15 @@ export interface SoundSet {
   drip: AudioBuffer;
   earcon: AudioBuffer;       // two-tone hint cue for no-speech fallback
   openAir: AudioBuffer;      // airy whoosh — a click's "non-return" from an opening
+  whoosh: AudioBuffer;       // pebble flight — soft rising noise
+  clatterStone: AudioBuffer; // pebble off a stone wall — bright ticks
+  clatterWood: AudioBuffer;  // pebble off wood — dull knocks
+  clatterSacks: AudioBuffer; // pebble into sacks — one muffled thump
+  skitterStone: AudioBuffer; // pebble skittering on stone floor
+  skitterWood: AudioBuffer;  // pebble skittering on wood floor
+  pebbleSplash: AudioBuffer; // pebble into water — short bright splash
+  pebbleCount: AudioBuffer;  // two-note "pebbles left" earcon (rate-shifted)
+  pebbleEmpty: AudioBuffer;  // dull tick — pouch is empty
 }
 
 function noiseBuffer(ctx: BaseAudioContext, seconds: number, pink = false): AudioBuffer {
@@ -361,8 +370,165 @@ export async function synthesize(ctx: AudioContext): Promise<SoundSet> {
   });
   normalize(openAir, 0.85);
 
+  // ── Pebble whoosh: soft band-passed noise sweeping upward, 0.45 s ──
+  const whoosh = await render(rate, 0.45, (o) => {
+    const src = o.createBufferSource();
+    src.buffer = noiseBuffer(o, 0.45);
+    const bp = o.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(1100, 0);
+    bp.frequency.exponentialRampToValueAtTime(2600, 0.45);
+    bp.Q.value = 0.8;
+    const env = envGain(o, [[0, 0.02], [0.07, 0.45], [0.45, 0]]);
+    src.connect(env).connect(bp).connect(o.destination);
+    src.start();
+  });
+  normalize(whoosh, 0.65);
+
+  // ── Pebble clatter on stone: 5 bright ticks + a high noise burst ──
+  const clatterStone = await render(rate, 0.32, (o) => {
+    for (let i = 0; i < 5; i++) {
+      const t = i * 0.038 + Math.random() * 0.02;
+      const osc = o.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(2400 + Math.random() * 2400, t);
+      osc.frequency.exponentialRampToValueAtTime(900, t + 0.03);
+      const g = envGain(o, [[t, 0.55 - i * 0.08], [t + 0.03, 0]]);
+      osc.connect(g).connect(o.destination);
+      osc.start(t); osc.stop(t + 0.04);
+    }
+    const n = o.createBufferSource();
+    n.buffer = noiseBuffer(o, 0.05);
+    const hp = o.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 3200;
+    const ng = envGain(o, [[0, 0.3], [0.05, 0]]);
+    n.connect(hp).connect(ng).connect(o.destination);
+    n.start();
+  });
+  normalize(clatterStone, 0.85);
+
+  // ── Pebble clatter on wood: 3 dull knocks around 600 Hz ──
+  const clatterWood = await render(rate, 0.3, (o) => {
+    for (let i = 0; i < 3; i++) {
+      const t = i * 0.055 + Math.random() * 0.02;
+      const osc = o.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(620 + Math.random() * 160, t);
+      osc.frequency.exponentialRampToValueAtTime(280, t + 0.04);
+      const g = envGain(o, [[t, 0.6 - i * 0.12], [t + 0.05, 0]]);
+      osc.connect(g).connect(o.destination);
+      osc.start(t); osc.stop(t + 0.06);
+    }
+    const n = o.createBufferSource();
+    n.buffer = noiseBuffer(o, 0.06);
+    const lp = o.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 1200;
+    const ng = envGain(o, [[0, 0.3], [0.06, 0]]);
+    n.connect(lp).connect(ng).connect(o.destination);
+    n.start();
+  });
+  normalize(clatterWood, 0.8);
+
+  // ── Pebble into sacks: a single muffled thump ──
+  const clatterSacks = await render(rate, 0.2, (o) => {
+    const osc = o.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(160, 0);
+    osc.frequency.exponentialRampToValueAtTime(70, 0.12);
+    const og = envGain(o, [[0, 0.8], [0.14, 0]]);
+    osc.connect(og).connect(o.destination);
+    const n = o.createBufferSource();
+    n.buffer = noiseBuffer(o, 0.05);
+    const lp = o.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 280;
+    const ng = envGain(o, [[0, 0.4], [0.05, 0]]);
+    n.connect(lp).connect(ng).connect(o.destination);
+    osc.start(); osc.stop(0.16); n.start();
+  });
+  normalize(clatterSacks, 0.85);
+
+  // ── Pebble skitter on hard floors: descending bounce ticks ──
+  const skitter = async (bright: boolean): Promise<AudioBuffer> => {
+    const b = await render(rate, 0.5, (o) => {
+      // Ticks cluster then space out like a bouncing stone settling.
+      const times = [0, 0.05, 0.11, 0.19, 0.29, 0.41];
+      times.forEach((t, i) => {
+        const osc = o.createOscillator();
+        osc.type = bright ? 'triangle' : 'sine';
+        const base = bright ? 2600 - i * 320 : 640 - i * 60;
+        osc.frequency.setValueAtTime(base + Math.random() * 120, t);
+        osc.frequency.exponentialRampToValueAtTime(base * 0.45, t + 0.03);
+        const g = envGain(o, [[t, Math.max(0.08, 0.5 - i * 0.09)], [t + 0.032, 0]]);
+        osc.connect(g).connect(o.destination);
+        osc.start(t); osc.stop(t + 0.04);
+      });
+      if (!bright) {
+        const n = o.createBufferSource();
+        n.buffer = noiseBuffer(o, 0.05);
+        const lp = o.createBiquadFilter();
+        lp.type = 'lowpass'; lp.frequency.value = 1000;
+        const ng = envGain(o, [[0, 0.25], [0.05, 0]]);
+        n.connect(lp).connect(ng).connect(o.destination);
+        n.start();
+      }
+    });
+    return normalize(b, 0.8);
+  };
+  const skitterStone = await skitter(true);
+  const skitterWood = await skitter(false);
+
+  // ── Pebble splash: the water footstep recipe, shorter and brighter ──
+  const pebbleSplash = await render(rate, 0.2, (o) => {
+    const src = o.createBufferSource();
+    src.buffer = noiseBuffer(o, 0.2);
+    const env = envGain(o, [[0, 0.7], [0.14, 0.1], [0.2, 0]]);
+    const lp = o.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 4000;
+    src.connect(env).connect(lp).connect(o.destination);
+    src.start();
+    for (let s = 0; s < 3; s++) {
+      const t = 0.02 + Math.random() * 0.08;
+      const sub = o.createBufferSource();
+      sub.buffer = noiseBuffer(o, 0.03);
+      const sg = envGain(o, [[t, 0.5 + Math.random() * 0.3], [t + 0.03, 0]]);
+      const bp = o.createBiquadFilter();
+      bp.type = 'bandpass'; bp.frequency.value = 2000 + Math.random() * 2400; bp.Q.value = 1.6;
+      sub.connect(sg).connect(bp).connect(o.destination);
+      sub.start(t);
+    }
+  });
+  normalize(pebbleSplash, 0.85);
+
+  // ── Pebble count earcon: two soft notes; played at lower rates as the
+  //    pouch empties so the pitch itself counts down. ──
+  const pebbleCount = await render(rate, 0.4, (o) => {
+    for (const [f, t] of [[1046.5, 0], [784, 0.14]] as const) {
+      const osc = o.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = f;
+      const g = envGain(o, [[t, 0.4], [t + 0.1, 0.3], [t + 0.14, 0]]);
+      osc.connect(g).connect(o.destination);
+      osc.start(t); osc.stop(t + 0.16);
+    }
+  });
+  normalize(pebbleCount, 0.55);
+
+  // ── Empty pouch: one dull tick — "nothing left". ──
+  const pebbleEmpty = await render(rate, 0.12, (o) => {
+    const osc = o.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(190, 0);
+    osc.frequency.exponentialRampToValueAtTime(110, 0.08);
+    const g = envGain(o, [[0, 0.6], [0.1, 0]]);
+    osc.connect(g).connect(o.destination);
+    osc.start(); osc.stop(0.11);
+  });
+  normalize(pebbleEmpty, 0.6);
+
   return {
     click, footstepStone, footstepWood, footstepWater, bump, beacon,
     breathing, growl, heartbeat, winSting, loseSting, drip, earcon, openAir,
+    whoosh, clatterStone, clatterWood, clatterSacks, skitterStone, skitterWood,
+    pebbleSplash, pebbleCount, pebbleEmpty,
   };
 }

@@ -23,11 +23,16 @@
 5. If time allows: `?level=hold` — the creature that hunts by sound. Watch it
    investigate every click on the projector while the judge tries to sneak
    out. (On `/watch`, press `C` to hide/show the creature.)
+6. In the Hold the judge can **flick up** (`Q` on desktop) to throw a pebble:
+   the projector shows a dashed amber arc; the creature (and a human hunter)
+   hears it exactly like a click at the landing — it investigates the decoy
+   while the judge slips away. Three per run; a two-note earcon counts them
+   down, pitch dropping as they run out.
 
 ## Backup
 
 - Desktop: `Space` = click, `W`/`S` = walk, `A`/`D` or mouse = turn,
-  `H` = hint, `M` = voice, `Esc` = pause, `` ` `` = debug map,
+  `Q` = pebble, `H` = hint, `M` = voice, `Esc` = pause, `` ` `` = debug map,
   `T` = tuning sliders.
 - A pre-recorded run video covers total network/device failure.
 
@@ -55,3 +60,13 @@
    player). If the hunter goes quiet for 5 s the AI silently takes back over.
 4. Projector trick: `V` toggles the fog on a spectator `/watch`, so one
    laptop can show the hunter's view. Results show "Hunted by a person".
+
+## Leaderboard (Batch E)
+
+1. When a run ends, `/watch` pops **"Name this player"** — the operator
+   types a name, `Enter` saves (Esc discards). The blindfolded player never
+   types. Runs played on the laptop itself feed the same board.
+2. `L` toggles the leaderboard — top 5 shown, ranked escaped → fastest →
+   fewest clicks. Calm runs and each drawn room get their own boards.
+3. A new #1 fires a record sting + **NEW RECORD** banner. `Shift+L` clears
+   the current board after a confirm.

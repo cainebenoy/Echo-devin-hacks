@@ -1,4 +1,5 @@
 import type { LevelDef } from '../world/level';
+import { MENU } from '../narration/script';
 
 export const hold: LevelDef = {
   meta: {
@@ -19,6 +20,7 @@ export const hold: LevelDef = {
         'Every click helps you. Every click helps it.',
         'Your heartbeat tells you how close it is. Its growls tell you which way.',
         "If it charges, keep walking and don't click — it can't hear your steps while it runs.",
+        MENU.pebbleIntro,
         'Find the hatch.',
       ],
       win: 'You escaped the hold.',

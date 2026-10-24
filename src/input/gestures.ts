@@ -9,7 +9,10 @@
  *  - one finger held 800 ms, < 15 px → 'longPress'
  *  - three-finger tap → 'threeFingerTap'
  *  - one-finger release after ≥ 40 px travel → 'swipe'
- *  - one-finger horizontal movement → 'drag' deltas (fallback turning)
+ *  - strict upward flick (> 60 px up, |dx| < ½·|dy|, < 300 ms) → 'flick'
+ *    (emitted in ADDITION to the qualifying 'swipe'; throws a pebble)
+ *  - one-finger horizontal movement → 'drag' deltas (fallback turning),
+ *    only once net horizontal travel exceeds 10 px AND dominates vertical
  */
 export type GestureEvent =
   | { type: 'tap' }
@@ -17,6 +20,7 @@ export type GestureEvent =
   | { type: 'longPress' }
   | { type: 'walkStart' }
   | { type: 'walkEnd' }
+  | { type: 'flick' }
   | { type: 'swipe'; dir: 'left' | 'right' | 'up' | 'down'; dx: number; dy: number }
   | { type: 'drag'; dx: number; dy: number };
 
@@ -25,6 +29,9 @@ const TAP_MAX_PX = 15;
 const LONGPRESS_MS = 800;
 const SWIPE_MIN_PX = 40;
 const THREE_TAP_MS = 400;
+const FLICK_MIN_UP = 60;
+const FLICK_MAX_MS = 300;
+const DRAG_START_PX = 10;
 
 interface Finger {
   id: number;
@@ -43,6 +50,7 @@ export class GestureRecognizer {
   private thirdJoinedAt = -1;
   private longPressFired = false;
   private walking = false;
+  private dragging = false;
   private emitFn: (e: GestureEvent) => void;
   private detachFns: (() => void)[] = [];
 
@@ -64,6 +72,7 @@ export class GestureRecognizer {
       this.maxSimultaneous = 0;
       this.thirdJoinedAt = -1;
       this.longPressFired = false;
+      this.dragging = false;
     }
     this.fingers.set(id, { id, x0: x, y0: y, x, y, t0: t, moved: 0 });
     this.maxSimultaneous = Math.max(this.maxSimultaneous, this.fingers.size);
@@ -87,9 +96,14 @@ export class GestureRecognizer {
     f.moved += Math.hypot(dx, dy);
     f.x = x;
     f.y = y;
-    // One-finger horizontal drag → fallback turning deltas.
+    // One-finger horizontal drag → fallback turning deltas. The drag gate
+    // opens only once net horizontal travel exceeds 10 px AND dominates
+    // vertical — an upward pebble flick never turns the player.
     if (this.fingers.size === 1 && !this.walking && dx !== 0) {
-      this.emit({ type: 'drag', dx, dy });
+      const netX = Math.abs(x - f.x0);
+      const netY = Math.abs(y - f.y0);
+      if (netX > DRAG_START_PX && netX > netY) this.dragging = true;
+      if (this.dragging) this.emit({ type: 'drag', dx, dy });
     }
     void t;
   }
@@ -110,6 +124,12 @@ export class GestureRecognizer {
       if (wasThreeTap) {
         this.emit({ type: 'threeFingerTap' });
       } else if (!this.everMulti && !this.longPressFired) {
+        // Strict upward pebble flick — emitted alongside the 'swipe' it
+        // also qualifies as, so pause/results swipe-up behaviour is kept.
+        const upPx = f.y0 - y;
+        if (upPx > FLICK_MIN_UP && Math.abs(x - f.x0) < upPx * 0.5 && dur < FLICK_MAX_MS) {
+          this.emit({ type: 'flick' });
+        }
         if (dur < TAP_MAX_MS && dist < TAP_MAX_PX && totalMoved < TAP_MAX_PX) {
           this.emit({ type: 'tap' });
         } else if (dist >= SWIPE_MIN_PX && dur < 450) {

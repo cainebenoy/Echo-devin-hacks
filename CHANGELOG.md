@@ -393,3 +393,38 @@
 - Changed: `src/style.css` — `#wm` opacity 0.35 → 0.55, cyan-dim → cyan,
   0.68rem → 0.72rem. It was deployed but effectively invisible.
 - Validation: deployed HTML confirmed to contain `#wm`; visual only.
+
+## 2026-10-25T06:55:00+05:30 — Batch E: pebble throws + projector leaderboard
+
+- **D3 Throw a Pebble** (`src/game/pebble.ts`, `gestures.ts`, `keyboard.ts`,
+  `synth.ts`, `loop.ts`, `recorder.ts`, `render.ts`, `results.ts`, `net.ts`,
+  `watch.ts`, `hold.ts`, `codec.ts`, `script.ts`, `main.ts`): creature
+  levels gain a 3-per-run pebble — flick up (phone) or `Q` (desktop), 800
+  ms cooldown. Landing = DDA ray 6 m max, 0.3 m before the first solid,
+  never inside solid. Flight whoosh pans/fades along the path; landing
+  plays a material clatter (stone/wood/sacks wall, floor skitter, water
+  splash) through the same propagation/occlusion model. The creature hears
+  it exactly like a click at the landing (shared `hearClick`; ripple
+  identical for hunters). Two-note count earcon pitch-drops as pebbles run
+  out; empty pouch plays a dull tick. New drag gate: turning only starts
+  past 10 px dominant horizontal — a flick applies zero turn and never
+  clicks. Recorder `throw` event + `pebbles` counter; replay/`/watch` draw
+  a dashed amber arc + landing ring (hunter fog shows only the ripple);
+  results show pebbles used. Hold + creature-custom intros teach the
+  gesture; objective repeat includes pebbles left.
+- **D4 Projector Leaderboard** (`src/spectate/leaderboard.ts`,
+  `boardui.ts`, `watch.ts`, `main.ts`, `style.css`): localStorage boards
+  keyed `levelId` / `custom:<map-hash>` with `:calm` suffix — calm and
+  normal runs never mix. Ranking escaped → faster → fewer clicks; top 20
+  kept, top 5 shown. `/watch` shows a "Name this player" overlay on each
+  finished run (Enter saves, Esc discards); laptop-local runs prompt on the
+  results screen (visual mode only). `L` toggles the panel, auto-shows 10 s
+  after a save with the entry highlighted, new #1 fires a sting + NEW
+  RECORD banner (3 s), `Shift+L` clears after confirm. Recording carries
+  `assist`/`customHash` so remote runs key correctly.
+- Validation: 102/102 vitest (20 new: landing math, creature parity, pouch,
+  flick classifier, ranking/keying/sanitize/cap), `tsc` clean,
+  `vite build` clean.
+- Limitations: the whoosh stretches a fixed 0.45 s buffer rather than
+  tracking the throw; leaderboard is single-device (no cross-laptop sync,
+  per spec); the naming prompt on local runs appears only in visual mode.

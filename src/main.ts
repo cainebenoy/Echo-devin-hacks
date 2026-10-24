@@ -18,6 +18,8 @@ import { startWatchPage } from './spectate/watch';
 import { startDrawPage } from './draw/editor';
 import { HunterLink, type HunterMsg } from './game/hunter';
 import { decodeCustom, customDef, validateCustomMap, STATUS_TEXT } from './custom/codec';
+import { boardKey, type BoardRun } from './spectate/leaderboard';
+import { BoardUI, recordRun } from './spectate/boardui';
 import { parseLevel } from './world/level';
 import { DebugOverlay } from './debug/overlay';
 import { TuningPanel } from './debug/tuning';
@@ -67,6 +69,7 @@ function boot(): void {
   const menuCta = app.querySelector<HTMLElement>('#menu-cta')!;
 
   const results = new ResultsScreen(app);
+  const boardUi = new BoardUI(app);
   const overlay = new DebugOverlay(app);
   const tuning = loadTuning();
   const tuningPanel = new TuningPanel(app, tuning);
@@ -119,6 +122,7 @@ function boot(): void {
       const m = narrator.toggleMuted();
       setStatus(m ? 'Voice muted — captions only (M to enable)' : 'Voice enabled (M to mute)', phase === 'playing');
     },
+    onThrow: () => { if (phase === 'playing') session?.throwPebble(); },
   });
 
   const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -146,7 +150,7 @@ function boot(): void {
     if (keys && visual) {
       const k = document.createElement('span');
       k.className = 'keys';
-      k.textContent = 'Space click · W/S walk · A/D turn · H hint · M voice · Esc pause · ` map · T tuning';
+      k.textContent = 'Space click · W/S walk · A/D turn · Q pebble · H hint · M voice · Esc pause · ` map · T tuning';
       statusEl.appendChild(k);
     }
     statusEl.classList.toggle('on', !!text && visual);
@@ -476,6 +480,23 @@ function boot(): void {
     }
     const next = nextLevel(l);
     results.show(rec, l, outcome === 'win' && next !== null);
+    // Runs played on the laptop itself feed the projector leaderboard
+    // (same localStorage /watch reads). Phone runs arrive via broadcast —
+    // and the blindfolded player never types.
+    if (visual && rec.outcome) {
+      const key = boardKey({ levelId: rec.levelId, customHash: rec.customHash, assist: rec.assist });
+      const run: BoardRun = {
+        levelId: rec.levelId,
+        customHash: rec.customHash,
+        outcome: rec.outcome,
+        duration: rec.duration,
+        clicks: rec.clicks,
+        pebbles: rec.pebbles ?? 0,
+        assist: !!rec.assist,
+        hunted: !!rec.hunted,
+      };
+      recordRun(boardUi, key, run);
+    }
     const summary = outcome === 'win'
       ? MENU.winSummary(rec.duration, rec.clicks)
       : MENU.loseSummary(rec.duration, rec.clicks);

@@ -36,12 +36,13 @@
 - **Demo walkthrough:** open `/watch` on a projector, `/?level=walls` on a
   phone, enter the 4-digit room code, blindfold the player; the audience
   watches clicks and echo lines live. Full script in [DEMO.md](DEMO.md).
-- **Checks performed and results:** `npm test` — 82/82 pass (level validation,
+- **Checks performed and results:** `npm test` — 102/102 pass (level validation,
   DDA/LOS/collision, BFS/A*/propagation, echo math, creature hearing/hunt/
   catch/cooldown, a scripted Hold beatability simulation, custom-room codec/
-  validation, hunter claim/rate-cap/fallback, gesture state machine,
-  orientation yaw). `npm run build` — clean typecheck + production build +
-  service worker.
+  validation, hunter claim/rate-cap/fallback, gesture state machine +
+  flick classifier, pebble landing/hearing parity, leaderboard ranking/
+  keying/cap, orientation yaw). `npm run build` — clean typecheck +
+  production build + service worker.
 - **Known limitations or incomplete features:** real-device iOS/Android
   playtest pending (spec §14); portrait lock unavailable on iOS Safari
   (heading math unaffected); live Supabase spectator/hunter paths verified

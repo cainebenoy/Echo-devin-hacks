@@ -124,3 +124,40 @@ The phone owns all physics: hunter messages are target cells only, capped at
 across level transitions so a hunter who joins during the menu is announced
 in the Hold intro; a stale claim (>10 s silent) can be reclaimed by a new
 hunter.
+
+## Batch E — Throw a Pebble + Projector Leaderboard
+
+### D3 deviations worth knowing
+
+- **Flick emits two events.** A strict upward flick emits `flick` AND the
+  `swipe{dir:'up'}` it also qualifies for. Session ignores `swipe` during
+  play and consumes `flick`; in pause/results the swipe keeps its existing
+  meaning (menu navigation). If `flick` had swallowed the swipe, a fast
+  up-flick in pause would silently stop working.
+- **Hearing field roots at the landing, not the player.** `hearClick`
+  measures creature→field-root distance, so the pebble path builds a BFS
+  field at the landing cell. Passing the player-rooted field would have
+  measured distance to the player instead — silent wrongness the tests
+  would not have caught because the signature is identical.
+- **The empty-pouch tick is cooldown-gated too** (800 ms) — otherwise
+  repeated flicks spam a tick every frame-ish. Spec only requires the tick
+  to exist; throttling matches the throw rate.
+- **Drag gating is displacement-based** (>10 px net horizontal AND
+  horizontal > vertical, then stays open until release). The old code
+  emitted per-move deltas; now the first <10 px of a drag produce no turn
+  events, which is what guarantees a flick can't turn.
+- **Pebble count lives in `PebblePouch`** so "3 per run / 4th no-op / retry
+  resets" is unit-testable without constructing a full `GameSession`.
+
+### D4 design choices
+
+- **Naming overlay appears on /watch for remote runs and on the results
+  screen for local runs — but only in `visual` (desktop/laptop) mode.**
+  Phone results never prompt: the blindfolded player never types, and their
+  runs reach the leaderboard through the room broadcast anyway.
+- **Boards key by `custom:<map-hash>` (FNV-1a)** — re-naming a room does
+  not fork its board. Hash input is the raw map string, before encoding.
+- **Laptop-only storage, origin-shared.** `/watch` and the game page on the
+  same device read the same `echo.board.*` keys — one store, no sync.
+- **Storage is injectable (`StoreLike`)** so ranking/cap/keying tests run
+  without localStorage.

@@ -4,11 +4,16 @@ export interface PosSample { t: number; x: number; y: number; heading: number; }
 export interface CreatureSample { t: number; x: number; y: number; state: CreatureState; }
 export interface RunEvent {
   t: number;
-  type: 'click' | 'bump' | 'hint' | 'creatureState';
+  type: 'click' | 'bump' | 'hint' | 'creatureState' | 'throw';
   /** For clicks: this click's echo hit points. */
   hits?: { x: number; y: number }[];
   /** For creatureState: the new state. */
   state?: CreatureState;
+  /** For throw: where the pebble left the hand and where it landed. */
+  from?: { x: number; y: number };
+  landing?: { x: number; y: number };
+  /** For throw: whether the creature heard the landing. */
+  heard?: boolean;
 }
 export type Outcome = 'win' | 'caught';
 
@@ -22,9 +27,15 @@ export interface Recording {
   duration: number;
   clicks: number;
   bumps: number;
+  /** Pebbles thrown this run. */
+  pebbles: number;
   closestApproach: number; // metres; Infinity when no creature
   /** True when a remote human hunter drove the creature at any point. */
   hunted?: boolean;
+  /** Calm/assist mode — boards never mix calm runs with normal ones. */
+  assist?: boolean;
+  /** Map hash for drawn rooms — keys their leaderboard board. */
+  customHash?: string;
 }
 
 const SAMPLE_HZ = 10;
@@ -44,6 +55,7 @@ export class Recorder {
       duration: 0,
       clicks: 0,
       bumps: 0,
+      pebbles: 0,
       closestApproach: Infinity,
     };
     this.nextSample = 0;
@@ -80,6 +92,11 @@ export class Recorder {
 
   creatureState(t: number, state: CreatureState): void {
     this.data.events.push({ t, type: 'creatureState', state });
+  }
+
+  throw(t: number, from: { x: number; y: number }, landing: { x: number; y: number }, heard: boolean): void {
+    this.data.pebbles++;
+    this.data.events.push({ t, type: 'throw', from, landing, heard });
   }
 
   finish(outcome: Outcome): Recording {

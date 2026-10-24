@@ -4,7 +4,10 @@ import { PositionalLoop, propagate } from '../audio/sources';
 import type { SoundSet } from '../audio/synth';
 import type { Tuning } from '../audio/tuning';
 import { bfsField, fieldDist, type BfsField } from '../world/path';
-import { encodeCustom } from '../custom/codec';
+import { encodeCustom, customHash } from '../custom/codec';
+import {
+  PEBBLE_COOLDOWN_MS, PebblePouch, pebbleLanding, type PebbleThrow,
+} from './pebble';
 import type { Level } from '../world/level';
 import type { FloorMaterial } from '../world/materials';
 import type { GestureEvent } from '../input/gestures';
@@ -68,6 +71,8 @@ export class GameSession {
   private nextPublish = 0;
   private ended = false;
   private dragTurnDeg = 0;
+  private pouch = new PebblePouch();
+  private lastThrowAt = -Infinity;
 
   constructor(deps: SessionDeps) {
     this.deps = deps;
@@ -82,6 +87,8 @@ export class GameSession {
     this.lastEcho = null;
     this.sensorsFallback = false;
     this.fallbackChecked = false;
+    this.pouch.reset();
+    this.lastThrowAt = -Infinity;
     this.player.spawn(level);
     this.deps.engine.setReverb(level.meta.rt60);
     this.recorder = new Recorder(level.meta.id, level.meta.name);
@@ -146,6 +153,7 @@ export class GameSession {
       case 'walkStart': this.walkGesture = true; break;
       case 'walkEnd': this.walkGesture = false; break;
       case 'longPress': this.hint(); break;
+      case 'flick': this.throwPebble(); break;
       case 'drag':
         if (this.sensorsFallback) this.dragTurnDeg += e.dx * 0.4;
         break;
@@ -176,6 +184,84 @@ export class GameSession {
     });
   }
 
+  /**
+   * Throw a pebble along the current heading — creature levels only. The
+   * landing is heard by the creature exactly like a click at that point
+   * (same `hearClick`, same hunter ripple), so it pulls attention away
+   * from where the player actually is.
+   */
+  throwPebble(): void {
+    if (this.ended || this.paused || !this.creature) return;
+    const now = performance.now();
+    if (now - this.lastThrowAt < PEBBLE_COOLDOWN_MS) return;
+    this.lastThrowAt = now;
+    if (this.deps.narrator.active) this.deps.narrator.clear();
+    if (!this.pouch.take()) {
+      this.playCentred(this.deps.sounds.pebbleEmpty, 0.5);
+      return;
+    }
+    const from = { x: this.player.x, y: this.player.y };
+    const th = pebbleLanding(this.level, from.x, from.y, this.player.heading);
+    this.playWhoosh(th);
+    window.setTimeout(() => this.landPebble(th, from), th.flightSec * 1000);
+  }
+
+  /** Flight sound — pans toward the landing's apparent direction, fades. */
+  private playWhoosh(th: PebbleThrow): void {
+    const ctx = this.deps.engine.ctx;
+    const src = ctx.createBufferSource();
+    src.buffer = this.deps.sounds.whoosh;
+    // Stretch the 0.45 s buffer to roughly cover the flight.
+    src.playbackRate.value = Math.min(1.4, Math.max(0.5, 0.45 / Math.max(0.2, th.flightSec)));
+    let rel = 0;
+    const field = this.currentField();
+    if (field) {
+      const p = propagate(this.level, field,
+        this.player.x, this.player.y, this.player.heading, th.x, th.y);
+      if (p) rel = p.rel;
+    }
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.5, ctx.currentTime);
+    g.gain.setTargetAtTime(0.02, ctx.currentTime + Math.max(0.05, th.flightSec - 0.1), 0.12);
+    const pan = ctx.createStereoPanner();
+    pan.pan.setValueAtTime(0, ctx.currentTime);
+    pan.pan.setTargetAtTime(
+      Math.max(-0.85, Math.min(0.85, Math.sin(rel) * 1.4)),
+      ctx.currentTime + th.flightSec * 0.4,
+      th.flightSec * 0.4,
+    );
+    src.connect(g).connect(pan).connect(this.deps.engine.sfxBus);
+    this.deps.engine.track(src);
+    src.start();
+  }
+
+  /** Landing: material clatter at the point, creature hears a click there. */
+  private landPebble(th: PebbleThrow, from: { x: number; y: number }): void {
+    if (this.ended) return;
+    const s = this.deps.sounds;
+    const buf = th.wall === 'stone' ? s.clatterStone
+      : th.wall === 'wood' ? s.clatterWood
+      : th.wall === 'sacks' ? s.clatterSacks
+      : th.floor === 'water' ? s.pebbleSplash
+      : th.floor === 'wood' ? s.skitterWood
+      : s.skitterStone;
+    this.playPositional(buf, th.x, th.y, 0.8);
+    // A landing IS a click as far as the creature (and the hunter's
+    // ripple) can tell — the whole point of the pebble. The hearing field
+    // must be rooted at the LANDING: distance is measured creature→landing,
+    // not creature→player.
+    let heard: { x: number; y: number } | null = null;
+    if (this.creature) {
+      const landField = bfsField(this.level, Math.floor(th.x), Math.floor(th.y));
+      heard = this.creature.hearClick(this.level, landField, th.x, th.y, this.creatureEvents());
+      if (heard) this.deps.net.hear({ x: heard.x, y: heard.y, kind: 'click' });
+    }
+    this.recorder.throw(this.runT, from, { x: th.x, y: th.y }, heard !== null);
+    this.deps.net.event({ type: 'throw', fx: from.x, fy: from.y, lx: th.x, ly: th.y });
+    // Count earcon — the pitch drops as the pouch empties (3→2→1→0).
+    this.playCentred(this.deps.sounds.pebbleCount, 0.4, 0.7 + 0.15 * this.pouch.left);
+  }
+
   hint(): void {
     if (this.ended || this.paused) return;
     this.recorder.hint(this.runT);
@@ -184,7 +270,11 @@ export class GameSession {
       this.deps.narrator.say(hints[this.hintIdx++]);
     } else {
       const intro = this.level.meta.narration.intro;
-      this.deps.narrator.say(MENU.objectiveRepeat(intro[intro.length - 1] ?? ''));
+      let line = MENU.objectiveRepeat(intro[intro.length - 1] ?? '');
+      if (this.creature) {
+        line += ` ${this.pouch.left} ${this.pouch.left === 1 ? 'pebble' : 'pebbles'} left.`;
+      }
+      this.deps.narrator.say(line);
     }
   }
 
@@ -246,10 +336,11 @@ export class GameSession {
     src.start();
   }
 
-  private playCentred(buf: AudioBuffer, gain: number): void {
+  private playCentred(buf: AudioBuffer, gain: number, rate = 1): void {
     const ctx = this.deps.engine.ctx;
     const src = ctx.createBufferSource();
     src.buffer = buf;
+    src.playbackRate.value = rate;
     const g = ctx.createGain();
     g.gain.value = gain;
     const pan = this.deps.engine.centred();
@@ -486,6 +577,9 @@ export class GameSession {
     this.ended = true;
     cancelAnimationFrame(this.raf);
     const rec = this.recorder.finish(outcome);
+    // Leaderboard fields — boards split calm runs and key drawn rooms by map.
+    rec.assist = this.deps.assist;
+    if (this.level.meta.id === 'custom') rec.customHash = customHash(this.level.map);
     this.beacon?.stop();
     this.breathing?.stop();
     if (outcome === 'win') {

@@ -1,6 +1,7 @@
 import { deflateSync, inflateSync, strToU8, strFromU8 } from 'fflate';
 import { parseLevel, type Level, type LevelDef } from '../world/level';
 import { bfsField, fieldDist } from '../world/path';
+import { MENU } from '../narration/script';
 
 /**
  * Custom ("Draw a room") levels: the editor stores/encodes ONLY the map,
@@ -85,6 +86,19 @@ export function decodeCustom(data: string): CustomPayload | null {
 export const CUSTOM_CREATURE = { wander: 0.5, investigate: 0.8, hunt: 0.95 };
 
 /**
+ * Small stable FNV-1a hash of a drawn map. Two namings of the same room
+ * share one leaderboard board (`custom:<hash>` keys it).
+ */
+export function customHash(map: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < map.length; i++) {
+    h ^= map.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(36);
+}
+
+/**
  * Deterministic meta from the map alone: rt60 scales with room size and the
  * player starts facing AWAY from the nearest exit so they have to search.
  */
@@ -114,12 +128,20 @@ export function customDef(p: CustomPayload): LevelDef {
     heading = Math.round(((away * 180) / Math.PI + 360) % 360);
   }
 
+  const base = bareMeta(p);
   return {
     meta: {
-      ...bareMeta(p),
+      ...base,
       rt60,
       playerHeading: heading,
       creature: l.creatureSpawn ? CUSTOM_CREATURE : undefined,
+      narration: {
+        ...base.narration,
+        // Rooms with a creature teach the pebble too.
+        intro: l.creatureSpawn
+          ? [...base.narration.intro, MENU.pebbleIntro]
+          : base.narration.intro,
+      },
     },
     map: p.map,
   };

@@ -18,7 +18,7 @@ export interface SpectateFrame {
   cstate?: string;
 }
 export interface SpectateEvent {
-  type: 'click' | 'bump' | 'start' | 'end';
+  type: 'click' | 'bump' | 'start' | 'end' | 'throw';
   levelId?: string;
   levelName?: string;
   /** Encoded `?custom=` payload when the run is a drawn room. */
@@ -28,6 +28,11 @@ export interface SpectateEvent {
   y?: number;
   outcome?: string;
   recording?: unknown;
+  /** For throw: hand position → landing position. */
+  fx?: number;
+  fy?: number;
+  lx?: number;
+  ly?: number;
 }
 
 /** A sound the creature could hear, broadcast for the hunter's fog view. */

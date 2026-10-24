@@ -19,6 +19,8 @@ export interface RenderState {
   creatureTarget?: { x: number; y: number } | null;
   /** Hunter fog view: where the creature heard something (fades ~3 s). */
   ripples?: { x: number; y: number; age: number; kind: 'click' | 'step' }[];
+  /** Pebble throws: dashed amber arc + landing ring (fades ~3 s). */
+  throws?: { from: { x: number; y: number }; landing: { x: number; y: number }; age: number }[];
 }
 
 const STATE_COLORS: Record<CreatureState, string> = {
@@ -119,6 +121,36 @@ export function renderMap(canvas: HTMLCanvasElement, level: Level, state: Render
       ctx.lineWidth = rp.kind === 'click' ? 2.5 : 1.5;
       ctx.beginPath();
       ctx.arc(X(rp.x), Y(rp.y), rad, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  // Pebble throws — a dashed amber arc hand→landing, ring at the point.
+  if (state.throws) {
+    for (const t of state.throws) {
+      const a = Math.max(0, 1 - t.age / 3);
+      const x0 = X(t.from.x);
+      const y0 = Y(t.from.y);
+      const x1 = X(t.landing.x);
+      const y1 = Y(t.landing.y);
+      // Arc bulges perpendicular to the throw line so it reads as flight.
+      const dx = x1 - x0;
+      const dy = y1 - y0;
+      const len = Math.hypot(dx, dy) || 1;
+      const cxp = (x0 + x1) / 2 - (dy / len) * len * 0.25;
+      const cyp = (y0 + y1) / 2 + (dx / len) * len * 0.25;
+      ctx.strokeStyle = `rgba(255,180,84,${0.8 * a})`;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.quadraticCurveTo(cxp, cyp, x1, y1);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.strokeStyle = `rgba(255,180,84,${0.9 * a})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x1, y1, Math.max(4, scale * 0.35), 0, Math.PI * 2);
       ctx.stroke();
     }
   }

@@ -8,6 +8,7 @@
   --cyan-dim: rgba(103, 232, 249, 0.55);
   --green: #57cc99;
   --red: #f97066;
+  --amber: #ffb454;
   --mono: ui-monospace, 'Cascadia Mono', 'SF Mono', Consolas, monospace;
 }
 
@@ -579,3 +580,139 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
 .draw-recent div { display: flex; gap: 6px; flex-wrap: wrap; }
 .draw-recent button { font-size: 11px; padding: 5px 10px; }
 .draw-back a { color: var(--cyan, #67e8f9); text-decoration: none; font-size: 13px; }
+
+/* ── projector leaderboard ─────────────────────────────────────────────── */
+#board {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 60;
+  min-width: min(88vw, 560px);
+  background: rgba(5, 7, 13, 0.92);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 1.2rem 1.6rem 0.9rem;
+  box-shadow: 0 0 60px rgba(103, 232, 249, 0.08), 0 8px 40px rgba(0,0,0,0.6);
+  backdrop-filter: blur(6px);
+}
+#board.hidden { display: none; }
+#board h2 {
+  margin: 0 0 0.7rem;
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 0.85rem;
+  letter-spacing: 0.4em;
+  color: var(--cyan-dim);
+  text-transform: uppercase;
+}
+#board h2 span { color: var(--cyan); letter-spacing: 0.15em; text-transform: none; }
+#board ol { list-style: none; margin: 0; padding: 0; }
+#board li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  font-family: var(--mono);
+  font-size: clamp(1rem, 2.4vw, 1.35rem);   /* readable from the back row */
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  color: var(--ink);
+}
+#board li.hl { background: rgba(103, 232, 249, 0.12); outline: 1px solid rgba(103, 232, 249, 0.35); }
+#board li .rk { color: var(--cyan-dim); width: 1.4em; text-align: right; }
+#board li .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#board li .oc.win { color: #57cc99; }
+#board li .oc.caught { color: var(--red); }
+#board li .tm { color: var(--ink); }
+#board li .ck { color: var(--dim); font-size: 0.8em; }
+#board .chip {
+  font-size: 0.55em;
+  letter-spacing: 0.08em;
+  color: var(--cyan-dim);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 0.15em 0.55em;
+  vertical-align: 0.2em;
+}
+#board .chip.hunted { color: var(--amber, #ffb454); border-color: rgba(255, 180, 84, 0.4); }
+#board .board-empty { color: var(--dim); font-size: 0.95rem; }
+#board .board-hint {
+  margin: 0.7rem 0 0;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  color: var(--dim);
+  opacity: 0.7;
+}
+
+/* ── NEW RECORD banner ─────────────────────────────────────────────────── */
+#record-banner {
+  position: fixed;
+  top: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 70;
+  font-family: var(--mono);
+  font-size: clamp(1.4rem, 4vw, 2.4rem);
+  letter-spacing: 0.3em;
+  color: var(--amber, #ffb454);
+  text-shadow: 0 0 30px rgba(255, 180, 84, 0.5);
+  animation: recordPulse 0.7s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+#record-banner.hidden { display: none; }
+@keyframes recordPulse {
+  from { opacity: 0.75; transform: translateX(-50%) scale(1); }
+  to   { opacity: 1;    transform: translateX(-50%) scale(1.04); }
+}
+
+/* ── name prompt ───────────────────────────────────────────────────────── */
+#name-prompt {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 4, 8, 0.55);
+}
+.np-box {
+  background: #0a0e16;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 1.4rem 1.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  min-width: min(80vw, 340px);
+  box-shadow: 0 0 50px rgba(103, 232, 249, 0.1);
+}
+.np-title {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.3em;
+  color: var(--cyan-dim);
+  text-transform: uppercase;
+  text-align: center;
+}
+#np-input {
+  background: #05070d;
+  border: 1px solid rgba(103, 232, 249, 0.35);
+  border-radius: 8px;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 1.2rem;
+  text-align: center;
+  padding: 0.6rem 0.8rem;
+  outline: none;
+}
+#np-input:focus { border-color: var(--cyan); }
+.np-hint {
+  margin: 0;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.15em;
+  color: var(--dim);
+}

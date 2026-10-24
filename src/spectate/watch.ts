@@ -7,6 +7,8 @@ import type { Recording } from '../replay/recorder';
 import type { CreatureState } from '../game/creature';
 import { ResultsScreen } from '../replay/results';
 import { SpectateNet, SpectateSub, type SpectateEvent, type SpectateFrame } from './net';
+import { boardKey, type BoardRun } from './leaderboard';
+import { BoardUI, recordRun } from './boardui';
 
 /**
  * /watch — audience view, or /watch?role=hunter — a second player drives the
@@ -47,19 +49,22 @@ export function startWatchPage(root: HTMLElement): void {
       <span id="watch-timer">0:00</span>
       <span id="watch-clicks">0 clicks</span>
       <span id="watch-role"></span>
-      <span class="hint">C toggles creature · V toggles hunter fog</span>
+      <span class="hint">C creature · V fog · L board · Shift+L clear</span>
     </div>
     <canvas id="watch-canvas"></canvas>`;
   root.appendChild(stage);
 
   const results = new ResultsScreen(root);
   const sub = new SpectateSub();
+  const boardUi = new BoardUI(root);
 
   let canvas: HTMLCanvasElement;
   let level: Level | null = null;
   let live: SpectateFrame | null = null;
   let clickFx: { x: number; y: number; hits: { x: number; y: number }[]; at: number }[] = [];
+  let throwFx: { from: { x: number; y: number }; landing: { x: number; y: number }; at: number }[] = [];
   let ripples: { x: number; y: number; kind: 'click' | 'step'; at: number }[] = [];
+  let lastBoardKey: string | null = null;
   let path: { x: number; y: number }[] = [];
   let creaturePath: { x: number; y: number }[] = [];
   let showCreature = true;
@@ -122,12 +127,40 @@ export function startWatchPage(root: HTMLElement): void {
     } else if (e.type === 'click' && e.x !== undefined && e.y !== undefined) {
       clickFx.push({ x: e.x, y: e.y, hits: e.hits ?? [], at: performance.now() });
       if (clickFx.length > 12) clickFx.shift();
+    } else if (e.type === 'throw' && e.fx !== undefined && e.lx !== undefined) {
+      throwFx.push({
+        from: { x: e.fx, y: e.fy ?? 0 },
+        landing: { x: e.lx, y: e.ly ?? 0 },
+        at: performance.now(),
+      });
+      if (throwFx.length > 12) throwFx.shift();
     } else if (e.type === 'end') {
       ended = true;
       const rec = e.recording as Recording | undefined;
       if (rec && level && !hunterMode) {
         stage.classList.add('hidden');
         results.show(rec, level, false);
+      }
+      if (rec) {
+        // Every finished run feeds the projector leaderboard — the
+        // operator names it; the blindfolded player never types.
+        const key = boardKey({
+          levelId: rec.levelId,
+          customHash: rec.customHash,
+          assist: rec.assist,
+        });
+        lastBoardKey = key;
+        const run: BoardRun = {
+          levelId: rec.levelId,
+          customHash: rec.customHash,
+          outcome: rec.outcome ?? 'caught',
+          duration: rec.duration,
+          clicks: rec.clicks,
+          pebbles: rec.pebbles ?? 0,
+          assist: !!rec.assist,
+          hunted: !!rec.hunted,
+        };
+        recordRun(boardUi, key, run);
       }
     }
   };
@@ -186,8 +219,13 @@ export function startWatchPage(root: HTMLElement): void {
     if ((e as KeyboardEvent).key === 'Enter') void join(hunterMode);
   });
   window.addEventListener('keydown', (e) => {
+    if ((e.target as HTMLElement | null)?.closest?.('input')) return;
     if (e.key === 'c' || e.key === 'C') showCreature = !showCreature;
     if (e.key === 'v' || e.key === 'V') fogView = !fogView;
+    if ((e.key === 'l' || e.key === 'L') && e.shiftKey) boardUi.clearCurrent();
+    else if (e.key === 'l' || e.key === 'L') {
+      boardUi.toggle(lastBoardKey ?? (live ? boardKey({ levelId: live.levelId }) : null));
+    }
   });
   window.addEventListener('beforeunload', () => {
     if (hunterAcked) sub.send('hunter', { t: 'release', id: myId });
@@ -226,6 +264,7 @@ export function startWatchPage(root: HTMLElement): void {
     if (level && live) {
       const now = performance.now();
       clickFx = clickFx.filter((c) => now - c.at < 2500);
+      throwFx = throwFx.filter((t) => now - t.at < 3000);
       const liveRipples = ripples.filter((r) => now - r.at < 3000);
       ripples = liveRipples;
       const fog = fogView;
@@ -233,6 +272,11 @@ export function startWatchPage(root: HTMLElement): void {
         player: fog ? null : { x: live.x, y: live.y, heading: live.heading },
         path: fog ? [] : path,
         clicks: fog ? [] : clickFx.map((c) => ({ x: c.x, y: c.y, hits: c.hits, age: (now - c.at) / 1000 })),
+        // The hunter's fog shows only the hearing ripple — never the arc,
+        // which would reveal the throw as a decoy.
+        throws: fog ? [] : throwFx.map((t) => ({
+          from: t.from, landing: t.landing, age: (now - t.at) / 1000,
+        })),
         creature: live.cx !== undefined && live.cy !== undefined
           ? { x: live.cx, y: live.cy, state: (live.cstate ?? 'wander') as CreatureState }
           : null,

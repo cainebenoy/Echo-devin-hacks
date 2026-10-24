@@ -85,6 +85,9 @@ export class ResultsScreen {
       `<div><b>${rec.clicks}</b><span>clicks</span></div>`,
       `<div><b>${rec.bumps}</b><span>bumps</span></div>`,
       `<div><b>${approach}</b><span>closest</span></div>`,
+      ...(rec.creature.length > 0
+        ? [`<div><b>${rec.pebbles ?? 0}</b><span>pebbles used</span></div>`]
+        : []),
       ...(rec.hunted ? [`<div><b>Hunted</b><span>by a person</span></div>`] : []),
     ].join('');
     this.nextBtn.style.display = canNext ? '' : 'none';
@@ -145,10 +148,14 @@ export class ResultsScreen {
       });
     const cpath = rec.creature.filter((c) => c.t <= t).map((c) => ({ x: c.x, y: c.y }));
     const c = rec.creature.filter((s) => s.t <= t).at(-1) ?? null;
+    const throws = rec.events
+      .filter((e) => e.type === 'throw' && e.t <= t && e.t > t - 3 && e.from && e.landing)
+      .map((e) => ({ from: e.from!, landing: e.landing!, age: t - e.t }));
     renderMap(this.canvas, level, {
       player: p ? { x: p.x, y: p.y, heading: p.heading } : null,
       path,
       clicks,
+      throws,
       creature: c ? { x: c.x, y: c.y, state: c.state } : null,
       creaturePath: cpath,
       closestMarker: null,

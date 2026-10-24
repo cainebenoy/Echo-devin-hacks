@@ -37,9 +37,10 @@ Built for **Devin Hack Kochi** (see
    `VITE_SUPABASE_ANON_KEY` (see `.env.example`); the game works fully without
    them.
 4. Start: `npm run dev` (desktop backup demo: `Space` click, `W`/`S` walk,
-   `A`/`D` turn, `H` hint, `M` voice, `Esc` pause, `` ` `` debug map,
-   `T` tuning panel).
-5. Checks: `npm test` (82 unit tests), `npm run build` (typecheck + PWA build).
+   `A`/`D` turn, `Q` pebble, `H` hint, `M` voice, `Esc` pause,
+   `` ` `` debug map, `T` tuning panel; `/watch`: `L` leaderboard,
+   `Shift+L` clear board).
+5. Checks: `npm test` (102 unit tests), `npm run build` (typecheck + PWA build).
 6. Screenshots: `npm run screenshots` regenerates `screenshots/` from the real
    level maps and echo model.
 
@@ -55,8 +56,11 @@ Built for **Devin Hack Kochi** (see
   lock, walk-in-place step detection, `/draw` room editor (QR/link/Supabase
   delivery, last-5 local rooms), `/watch?role=hunter` hunter mode where a
   second person drives the creature through a fogged map (`V` toggles the
-  fog on the projector), and a Calm assist mode (slower duller creature,
-  louder beacon) for an easier run.
+  fog on the projector), pebble throws on creature levels (phone: flick up;
+  desktop: `Q` — the landing is heard exactly like a click at that point),
+  a projector leaderboard on `/watch` (`L` toggles, auto-names each run,
+  per-level + calm + custom-map boards, top 20 kept), and a Calm assist
+  mode (slower duller creature, louder beacon) for an easier run.
 - **Known limitations:** portrait lock is best-effort (unsupported on iOS
   Safari); speech depends on device voices (fallback mode documented in
   NOTES.md); real-device checklist in ECHO_SPEC.md §14 still pending.

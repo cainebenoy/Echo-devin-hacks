@@ -28,3 +28,5 @@ organizer's supplied rules. This record covers participant AI usage above.
 - Human review: pending maintainer review of this pull request.
 - Validation: documentation diff, whitespace, and local Markdown link checks;
   no application code changed and no runtime checks were needed.
+
+| 2026-10-25 ~06:00–07:00 +05:30 | Devin (SWE-2 Max) | Batch E: Throw a Pebble (D3) + Projector Leaderboard (D4) | Wrote `src/game/pebble.ts`, `src/spectate/leaderboard.ts`, `boardui.ts`, new synth recipes (whoosh/clatters/skits/splash/count/empty), `tests/pebble.test.ts`, `tests/leaderboard.test.ts`; extended gestures (flick + drag gate), loop, recorder, renderer, watch, codec, narration | User supplied the Batch E spec verbatim | `npm test` 102/102; `npm run build` clean |

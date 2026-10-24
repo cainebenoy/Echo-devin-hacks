@@ -1,7 +1,7 @@
 /**
  * Desktop input — development and the backup demo.
- * Space click, W/S walk, A/D or pointer-lock mouse turn, H hint, Esc pause,
- * backquote toggles the debug map, T toggles the tuning panel.
+ * Space click, W/S walk, A/D or pointer-lock mouse turn, Q pebble, H hint,
+ * Esc pause, backquote toggles the debug map, T toggles the tuning panel.
  */
 export interface KeyboardHandlers {
   onClick(): void;
@@ -11,6 +11,7 @@ export interface KeyboardHandlers {
   onTuningToggle?(): void;
   onSkipSpeech?(): void;
   onToggleVoice?(): void;
+  onThrow?(): void;
 }
 
 export class KeyboardInput {
@@ -37,6 +38,7 @@ export class KeyboardInput {
       else if (e.code === 'KeyT') this.handlers.onTuningToggle?.();
       else if (e.code === 'Enter') this.handlers.onSkipSpeech?.();
       else if (e.code === 'KeyM') this.handlers.onToggleVoice?.();
+      else if (e.code === 'KeyQ') this.handlers.onThrow?.();
     };
     const up = (e: KeyboardEvent) => {
       this.keys.delete(e.code);
