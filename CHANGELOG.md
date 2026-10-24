@@ -387,3 +387,9 @@
 - Validation: `vite build` clean.
 - Limitations: the code still only exists after the boot tap (the channel
   connects inside the first gesture).
+
+## 2026-10-25T06:00:00+05:30 — Watermark findable
+
+- Changed: `src/style.css` — `#wm` opacity 0.35 → 0.55, cyan-dim → cyan,
+  0.68rem → 0.72rem. It was deployed but effectively invisible.
+- Validation: deployed HTML confirmed to contain `#wm`; visual only.
