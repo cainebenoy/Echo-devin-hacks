@@ -10,7 +10,7 @@
   players and for demos where the audience watches the blindfolded player on a
   projector (`/watch`). Helps demonstrate real-world human echolocation.
 - **Code repository URL:** https://github.com/cainebenoy/Echo-devin-hacks
-- **Final submitted implementation commit SHA:** `879127b` (implementation
+- **Final submitted implementation commit SHA:** `4870fce` (implementation
   complete as of this commit; later commits are docs-only).
 - **Working demo URL or local demo steps:** https://echo-devin-hacks.vercel.app/
   (spectator: `/watch`, room editor: `/draw`, hunter mode: `/watch?role=hunter`).
