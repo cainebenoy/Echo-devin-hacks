@@ -22,3 +22,4 @@ Thumbs.db
 *.log
 
 # Add entries appropriate to your chosen language or framework.
+scripts/.*.mjs
