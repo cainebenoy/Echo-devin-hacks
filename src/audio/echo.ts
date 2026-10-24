@@ -172,7 +172,8 @@ export function playEcho(engine: Engine, clickBuffer: AudioBuffer, openAir: Audi
     const g = ctx.createGain();
     g.gain.value = bin.amp * focus * (openAhead ? 0.35 : 1);
     const pan = engine.pannerAt(bin.rel);
-    src.connect(lp).connect(g).connect(pan).connect(engine.sfxBus);
+    src.connect(lp).connect(g).connect(pan)
+      .connect(engine.stereoAt(bin.rel)).connect(engine.sfxBus);
     const send = ctx.createGain();
     send.gain.value = t.reverbAmount * focus;
     src.connect(send).connect(engine.reverbSend);
@@ -189,10 +190,13 @@ export function playEcho(engine: Engine, clickBuffer: AudioBuffer, openAir: Audi
     src.buffer = openAir;
     src.playbackRate.value = ahead ? 1.0 : 0.78;
     const g = ctx.createGain();
-    g.gain.value = ahead ? 0.55 : 0.16;
+    // Off-axis hint must be audible enough to steer a sweep toward the gap.
+    g.gain.value = ahead ? 0.55 : 0.32;
     const pan = ahead ? engine.centred() : engine.pannerAt(op.rel);
-    src.connect(g).connect(pan).connect(engine.sfxBus);
+    const node = src.connect(g).connect(pan) as AudioNode;
+    if (!ahead) node.connect(engine.stereoAt(op.rel)).connect(engine.sfxBus);
+    else node.connect(engine.sfxBus);
     engine.track(src);
-    src.start(now + 0.05);
+    src.start(now + (ahead ? 0.09 : 0.05));
   }
 }

@@ -186,3 +186,17 @@
   creature was. Heartbeat only encoded distance.
 - Validation: `tsc` clean; 54/54 tests; `vite build` clean.
 - Limitations: perceptual clarity unverified until on-earphone playtest.
+
+## 2026-10-25T00:20:00+05:30 — Walls level forgiveness pass
+
+- Changed: `src/levels/walls.ts` gap widened 2→3 cells centred on the
+  player (~45° silent notch vs ~15°), intro/hints now teach "knock = wall,
+  chime = gap". `src/audio/echo.ts` off-axis opening hint 0.16→0.32 gain so
+  sweeping audibly steers toward the gap; echo bins and off-axis cue get
+  the stereo boost; ahead-chime delayed to 90 ms to clear the click.
+- Why: physics was correct but unforgiving — a 15° notch was easy to skip
+  past while sweeping, the guide cue was inaudible, and walking through
+  gave only 0.5 m margin before a bump.
+- Validation: `tsc` clean; 54/54 tests; `vite build` clean; echotest dump
+  shows ±15° bins near-silent (amp ≤0.02) when facing the gap.
+- Limitations: none known; notch width tuned for tutorial forgiveness.
