@@ -84,3 +84,16 @@
   clean build.
 - Limitations: echo gain values are playtested on desktop speakers, not yet
   tuned on earphones.
+
+## 2026-10-24T22:20:00+05:30 — Gap notch made readable
+
+- Changed: `src/audio/echo.ts` — echo amplitude multiplied by bin ray
+  coverage so partially-filled bins sound proportionally dimmer;
+  `src/audio/tuning.ts` — clickGain 0.45→0.35 so the dry click cannot mask
+  the silence of an opening. Documented deviation in NOTES.md.
+- Why: playtest showed the 2-cell gap still produced audible echo; coverage
+  weighting widens the perceived notch without changing ray physics.
+- Validation: scripted echo dump — gap bin silent, shoulder bins ≤0.02 amp;
+  `tsc` clean; 54/54 tests; clean build.
+- Limitations: shoulder-bin dimming also softens wall edges; acceptable
+  trade-off, tunable.

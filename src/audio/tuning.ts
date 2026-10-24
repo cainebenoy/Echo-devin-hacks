@@ -23,7 +23,7 @@ export function defaultTuning(): Tuning {
     bins: 24,
     echoTimeScale: 5,
     echoGain: 1.15,
-    clickGain: 0.45,
+    clickGain: 0.35,
     reverbAmount: 0.08,
     maxDist: 20,
     nearWallBoost: 1.4,

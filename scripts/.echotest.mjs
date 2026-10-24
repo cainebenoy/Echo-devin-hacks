@@ -385,7 +385,8 @@ function computeEcho(level, px2, py2, heading, t2) {
         mBin = m;
       }
     }
-    let amp = Math.min(1, t2.echoGain * Math.sqrt(eBin));
+    const coverage = a.hits / raysPerBin;
+    let amp = Math.min(1, t2.echoGain * Math.sqrt(eBin) * coverage);
     if (dBin < t2.nearWallDist) amp = Math.min(1, amp * t2.nearWallBoost);
     const delay = 2 * dBin / 343 * t2.echoTimeScale;
     const cutoff = Math.min(t2.materialCutoff[mBin], 16e3 / (1 + dBin / 4));
@@ -409,10 +410,10 @@ function defaultTuning() {
   return {
     rays: 180,
     bins: 24,
-    echoTimeScale: 3,
-    echoGain: 0.9,
-    clickGain: 0.5,
-    reverbAmount: 0.12,
+    echoTimeScale: 5,
+    echoGain: 1.15,
+    clickGain: 0.35,
+    reverbAmount: 0.08,
     maxDist: 20,
     nearWallBoost: 1.4,
     nearWallDist: 1.5,

@@ -67,3 +67,12 @@ read as "clicking" rather than directional returns. Playtested defaults are
 now `echoTimeScale=5, echoGain=1.15, clickGain=0.45, reverbAmount=0.08` — all
 within the spec's tunable ranges (1–6 for the time scale; sliders still allow
 the original values).
+
+### Coverage-weighted echo amplitude (playability deviation)
+
+Spec computes per-bin amplitude from mean ray energy alone; a bin whose rays
+only partially hit (the shoulder of an opening) then sounds almost as loud as
+a full wall, so a 2-cell gap read as a barely-audible ~15° notch. Amp is now
+additionally multiplied by `hits / raysPerBin`: partial bins dim in
+proportion, gaps read as a ~30° silent notch. Verified on Walls — the
+gap-facing bins are silent or ≤0.02 amp while full-coverage flanks stay loud.

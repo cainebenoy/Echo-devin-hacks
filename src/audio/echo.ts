@@ -91,7 +91,11 @@ export function computeEcho(level: Level, px: number, py: number, heading: numbe
     for (const [m, e] of a.matEnergy) {
       if (e > mE) { mE = e; mBin = m; }
     }
-    let amp = Math.min(1, t.echoGain * Math.sqrt(eBin));
+    // Amplitude additionally scales with ray coverage: a bin only partially
+    // filled by returns (doorway edge, gap shoulder) sounds proportionally
+    // dimmer, which makes openings read as a wider silent notch.
+    const coverage = a.hits / raysPerBin;
+    let amp = Math.min(1, t.echoGain * Math.sqrt(eBin) * coverage);
     if (dBin < t.nearWallDist) amp = Math.min(1, amp * t.nearWallBoost);
     const delay = ((2 * dBin) / 343) * t.echoTimeScale;
     const cutoff = Math.min(t.materialCutoff[mBin], 16000 / (1 + dBin / 4));
