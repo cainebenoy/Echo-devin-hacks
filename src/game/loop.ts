@@ -14,7 +14,7 @@ import type { Narrator } from '../narration/narrator';
 import type { SpectateNet } from '../spectate/net';
 import type { DebugOverlay } from '../debug/overlay';
 import type { RenderState } from '../replay/render';
-import { Creature, HEARING } from './creature';
+import { Creature } from './creature';
 import { Player } from './player';
 import { Recorder, type Outcome, type Recording } from '../replay/recorder';
 import { MENU } from '../narration/script';
@@ -30,6 +30,8 @@ export interface SessionDeps {
   net: SpectateNet;
   overlay: DebugOverlay;
   isTouch: boolean;
+  /** Calm/assist mode: slower duller creature + louder beacon. */
+  assist: boolean;
   onEnd(outcome: Outcome, rec: Recording): void;
 }
 
@@ -83,6 +85,7 @@ export class GameSession {
     if (level.meta.creature && level.creatureSpawn) {
       this.creature = new Creature();
       this.creature.spawn(level);
+      if (this.deps.assist) this.creature.applyAssist();
       this.breathing = new PositionalLoop(this.deps.engine, this.deps.sounds.breathing, 0.8);
       this.breathing.start();
       this.nextDrip = 3 + Math.random() * 4;
@@ -95,7 +98,7 @@ export class GameSession {
         this.deps.engine, this.deps.sounds.beacon, level.meta.beaconGain, this.deps.engine.ambienceBus,
         // Audibility floor: the beacon is the wayfinding cue, so it stays
         // faintly present even across the longest level.
-        level.meta.beaconGain * 0.15,
+        level.meta.beaconGain * (this.deps.assist ? 0.25 : 0.15),
       );
       this.beacon.start();
     }
@@ -289,13 +292,17 @@ export class GameSession {
         this.player.x, this.player.y, this.player.heading,
         this.creature.x, this.creature.y);
       if (p) this.breathing?.update(p.rel, p.distance, p.occluded);
-      // Heartbeat when path distance < 7 m, 70→150 bpm.
+      // Heartbeat when path distance < huntEnter, rate + volume scale with
+      // closeness; a vibration pulse under 3 m warns without audio.
       const d = this.creature.distanceTo(field);
-      if (d >= 0 && d < HEARING.huntEnter) {
-        const bpm = 70 + ((HEARING.huntEnter - d) / (HEARING.huntEnter - 1)) * (150 - 70);
+      const enter = this.creature.hearing.huntEnter;
+      if (d >= 0 && d < enter) {
+        const bpm = 70 + ((enter - d) / Math.max(1, enter - 1)) * (150 - 70);
+        const gain = 0.45 + 0.55 * (1 - d / enter);
         if (this.runT >= this.nextBeat) {
           this.nextBeat = this.runT + 60 / bpm;
-          this.playCentred(this.deps.sounds.heartbeat, 0.85);
+          this.playCentred(this.deps.sounds.heartbeat, gain);
+          if (d < 3 && this.deps.isTouch) navigator.vibrate?.(40);
         }
       }
       // Ambient drips in the hold.
@@ -414,7 +421,10 @@ export class GameSession {
       heard,
       clicks: `${this.recorder.data.clicks}`,
       bumps: `${this.recorder.data.bumps}`,
-      creature: this.creature ? this.creature.state : '—',
+      creature: this.creature
+        ? `${this.creature.state} ${(f => f && this.creature ? this.creature.distanceTo(f).toFixed(1) + 'm' : '—')(this.currentField())}`
+        : '—',
+      ...(this.deps.assist ? { assist: 'on' } : {}),
       fallback: this.sensorsFallback ? 'drag-turn' : 'sensors',
       voice: this.deps.narrator.voiceLabel,
     });

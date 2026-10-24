@@ -157,3 +157,17 @@
   `tsc` clean; 54/54 tests; clean build.
 - Limitations: floor keeps gain flat beyond ~12m; directionality is still
   encoded by the panner.
+
+## 2026-10-24T23:20:00+05:30 — Creature stuck fix, proximity cues, Calm mode
+
+- Changed: `src/game/creature.ts` — reaching the end of a hunt/investigate
+  path with nothing found now returns to wander instead of standing frozen;
+  hearing profile is per-instance so assist can scale it. `src/game/loop.ts` —
+  heartbeat gain scales with closeness and vibrates under 3 m; HUD shows
+  creature state + path distance; `assist` dep floors beacon higher and
+  applies the creature assist profile. `src/main.ts` — `?assist=1` / stored
+  `echo.assist` + a "Calm" toggle button in the level picker.
+- Why: creature looked stuck after reaching a heard spot; players had no
+  proximity feedback; late levels were too punishing.
+- Validation: `tsc` clean; 54/54 tests; `vite build` clean.
+- Limitations: creature chase smoothness not verified on-device yet.

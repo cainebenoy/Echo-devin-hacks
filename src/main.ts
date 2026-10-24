@@ -103,6 +103,8 @@ function boot(): void {
   // Visual/testing mode: live map during play. On by default on desktop,
   // or anywhere via ?visual=1 (phone stays black without it).
   const visual = params.get('visual') === '1' || (!isTouch && params.get('visual') !== '0');
+  // Calm/assist mode: slower creature, duller hearing, louder beacon floor.
+  let assist = params.get('assist') === '1' || localStorage.getItem('echo.assist') === '1';
   overlay.setVisual(visual);
   // In visual/desktop testing mode, default to captions-only so the robot
   // speechSynthesis voice doesn't talk over every run (press M to enable).
@@ -223,12 +225,21 @@ function boot(): void {
       };
       levelPick.appendChild(b);
     });
+    const calm = document.createElement('button');
+    calm.textContent = assist ? 'Calm: on' : 'Calm: off';
+    calm.className = assist ? 'sel' : '';
+    calm.onclick = () => {
+      assist = !assist;
+      localStorage.setItem('echo.assist', assist ? '1' : '0');
+      renderLevelPick();
+    };
+    levelPick.appendChild(calm);
   }
 
   function menuStatus(): void {
     const l = levels[menuIdx];
     const locked = !visual && !(l.meta.order <= progress.unlocked || progress.finishedAll);
-    setStatus(`Level ${l.meta.order}: ${l.meta.name} — pick a level below or press Space`);
+    setStatus(`Level ${l.meta.order}: ${l.meta.name} — pick a level below or press Space${assist ? ' · calm' : ''}`);
     renderLevelPick();
     if (visual) {
       overlay.show(true);
@@ -274,6 +285,7 @@ function boot(): void {
       net,
       overlay,
       isTouch,
+      assist,
       onEnd: onRunEnd,
     });
     session.start(level);

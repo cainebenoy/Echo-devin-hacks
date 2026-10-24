@@ -34,6 +34,8 @@ export class Creature {
   y = 0;
   state: CreatureState = 'wander';
   speeds = { wander: 0.6, investigate: 1.0, hunt: 1.35 };
+  /** Effective hearing/speed profile — assist mode scales these down. */
+  hearing = { ...HEARING, footstep: { ...HEARING.footstep } };
   private path: CellPos[] = [];
   private pathIdx = 0;
   private target: { x: number; y: number } | null = null;
@@ -44,6 +46,24 @@ export class Creature {
 
   constructor(rng: () => number = Math.random) {
     this.rng = rng;
+  }
+
+  /** Calm/assist mode: slower than the player's walk, duller hearing,
+   * longer grace, shorter hunts — the run stays tense but winnable. */
+  applyAssist(): void {
+    this.hearing = {
+      click: this.hearing.click * 0.6,
+      footstep: {
+        stone: HEARING.footstep.stone * 0.6,
+        wood: HEARING.footstep.wood * 0.6,
+        water: HEARING.footstep.water * 0.6,
+      },
+      huntEnter: this.hearing.huntEnter * 0.6,
+      huntDropSec: 5,
+      catchDist: this.hearing.catchDist,
+      gracePeriodSec: 10,
+    };
+    this.speeds = { wander: 0.5, investigate: 0.8, hunt: 0.95 };
   }
 
   spawn(l: Level): void {
@@ -75,33 +95,33 @@ export class Creature {
   /** A click was made at the player's position. */
   hearClick(l: Level, field: BfsField, px: number, py: number, ev: CreatureEvents): void {
     const d = this.distanceTo(field);
-    if (d < 0 || d > HEARING.click) return;
+    if (d < 0 || d > this.hearing.click) return;
     const sigma = 0.12 * d;
     this.target = { x: px + gauss(this.rng) * sigma, y: py + gauss(this.rng) * sigma };
     this.repathNow(l, ev);
-    if (d <= HEARING.huntEnter && this.age > HEARING.gracePeriodSec) {
+    if (d <= this.hearing.huntEnter && this.age > this.hearing.gracePeriodSec) {
       this.setState('hunt', ev);
-      this.huntTimer = HEARING.huntDropSec;
+      this.huntTimer = this.hearing.huntDropSec;
     } else if (this.state === 'wander') {
       this.setState('investigate', ev);
     } else if (this.state === 'hunt') {
-      this.huntTimer = HEARING.huntDropSec;
+      this.huntTimer = this.hearing.huntDropSec;
     }
   }
 
   /** A footstep on `floor` at the player's position. */
   hearFootstep(l: Level, field: BfsField, floor: FloorMaterial, px: number, py: number, ev: CreatureEvents): void {
     const d = this.distanceTo(field);
-    if (d < 0 || d > HEARING.footstep[floor]) return;
+    if (d < 0 || d > this.hearing.footstep[floor]) return;
     this.target = { x: px, y: py };
     this.repathNow(l, ev);
-    if (d <= HEARING.huntEnter && this.age > HEARING.gracePeriodSec) {
+    if (d <= this.hearing.huntEnter && this.age > this.hearing.gracePeriodSec) {
       this.setState('hunt', ev);
-      this.huntTimer = HEARING.huntDropSec;
+      this.huntTimer = this.hearing.huntDropSec;
     } else if (this.state === 'wander') {
       this.setState('investigate', ev);
     } else if (this.state === 'hunt') {
-      this.huntTimer = HEARING.huntDropSec;
+      this.huntTimer = this.hearing.huntDropSec;
     }
   }
 
@@ -140,7 +160,7 @@ export class Creature {
     }
     if (cells.length === 0) return;
     let pool = cells;
-    if (this.age < HEARING.gracePeriodSec) {
+    if (this.age < this.hearing.gracePeriodSec) {
       const away = cells.filter((c) =>
         Math.hypot(c.col + 0.5 - playerPos.x, c.row + 0.5 - playerPos.y) > 4);
       if (away.length > 0) pool = away;
@@ -188,14 +208,15 @@ export class Creature {
       if (step >= d - 1e-9) this.pathIdx++;
     }
 
-    if (this.state === 'investigate' && this.target && this.pathIdx >= this.path.length) {
-      // Arrived at the last heard position with nothing new → wander.
+    // Reached the end of the chase/investigation path with nothing found →
+    // back to wandering instead of standing still ("stuck" bug).
+    if ((this.state === 'hunt' || this.state === 'investigate') && this.pathIdx >= this.path.length) {
       this.target = null;
       this.setState('wander', ev);
     }
 
     // Catch check.
-    if (this.state !== 'caught' && Math.hypot(this.x - px, this.y - py) < HEARING.catchDist) {
+    if (this.state !== 'caught' && Math.hypot(this.x - px, this.y - py) < this.hearing.catchDist) {
       this.setState('caught', ev);
       ev.onCatch();
     }
