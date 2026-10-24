@@ -75,6 +75,7 @@ function boot(): void {
   const rgLevel = app.querySelector<HTMLElement>('#rg-level')!;
   const rgSub = app.querySelector<HTMLElement>('#rg-sub')!;
   const rgBtn = app.querySelector<HTMLButtonElement>('#rg-start')!;
+  const rgHint = app.querySelector<HTMLElement>('.rg-hint')!;
 
   // Measure the active system font's exact 'O' ink centre (ascent/descent
   // vs cap-height) so the sonar rings sit dead-centre inside the O on
@@ -121,6 +122,7 @@ function boot(): void {
   const steps = new StepDetector();
   const net = new SpectateNet();
   const hunterLink = new HunterLink();
+  try { steps.enabled = localStorage.getItem('echo.steps') === '1'; } catch { /* blocked */ }
   /** A drawn room broadcast to this room's channel, waiting for the player. */
   let pendingCustom: string | null = null;
   /** The offer must be ANNOUNCED before a tap can accept — a room arriving
@@ -189,6 +191,9 @@ function boot(): void {
   // devices — only coarse-pointer devices (phones/tablets) get touch UX.
   const isTouch = (('ontouchstart' in window) || navigator.maxTouchPoints > 0)
     && !window.matchMedia('(pointer:fine)').matches;
+  rgHint.textContent = isTouch
+    ? 'or tap anywhere when ready — won\'t fire a click'
+    : 'or tap / press Space / W when ready — won\'t fire a click';
   menuCta.textContent = isTouch
     ? 'tap a level to begin'
     : 'pick a level — or press Space to play';
@@ -674,6 +679,7 @@ function boot(): void {
       phase = 'paused';
       syncChrome();
       session?.setPaused(true);
+      if (isTouch) navigator.vibrate?.(25); // confirms the three-finger pause
       setStatus('Paused — tap to resume, swipe down restart, swipe up menu, swipe left steps');
       narrator.say(MENU.pause);
     } else if (phase === 'paused') {
@@ -731,6 +737,7 @@ function boot(): void {
         else if (e.type === 'swipe' && e.dir === 'up') { session?.stop(); session = null; enterMenu(); }
         else if (e.type === 'swipe' && e.dir === 'left') {
           steps.enabled = !steps.enabled;
+          try { localStorage.setItem('echo.steps', steps.enabled ? '1' : '0'); } catch { /* blocked */ }
           narrator.say(steps.enabled ? 'Walk in place: on.' : 'Walk in place: off.');
         }
         break;

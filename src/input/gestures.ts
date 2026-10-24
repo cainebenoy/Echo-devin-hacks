@@ -24,7 +24,7 @@ export type GestureEvent =
   | { type: 'swipe'; dir: 'left' | 'right' | 'up' | 'down'; dx: number; dy: number }
   | { type: 'drag'; dx: number; dy: number };
 
-const TAP_MAX_MS = 250;
+const TAP_MAX_MS = 350;
 const TAP_MAX_PX = 15;
 const LONGPRESS_MS = 800;
 const SWIPE_MIN_PX = 40;
@@ -132,8 +132,9 @@ export class GestureRecognizer {
         }
         if (dur < TAP_MAX_MS && dist < TAP_MAX_PX && totalMoved < TAP_MAX_PX) {
           this.emit({ type: 'tap' });
-        } else if (dist >= SWIPE_MIN_PX && dur < 450) {
-          // Quick flicks only — a held drag-turn must not become a menu swipe.
+        } else if (dist >= SWIPE_MIN_PX && dur < 900) {
+          // Still quick flicks — a held drag-turn must not become a menu
+          // swipe — but 900 ms forgives slow deliberate blind swipes.
           const dir = Math.abs(x - f.x0) >= Math.abs(y - f.y0)
             ? (x > f.x0 ? 'right' : 'left')
             : (y > f.y0 ? 'down' : 'up');

@@ -1,6 +1,33 @@
 # Change log
 
-## 2026-10-25T05:55:00+05:30 — Follow-up fixes to the hardening pass
+## 2026-10-25T03:30:00+05:30 — Mobile feel pass
+
+- Changed: `src/input/orientation.ts`, `src/input/gestures.ts`,
+  `src/game/loop.ts`, `src/main.ts`.
+- Why: small friction points that add up on a screen-off phone experience.
+- Changes:
+  - Gyro heading converges instead of asymptoting — the EMA (0.3/sample)
+    snaps inside a 0.12° band so the heading stops micro-drifting when the
+    player holds still.
+  - Heading baseline is re-captured in `GameSession.begin()` — the pose at
+    the Start-press becomes the level's spawn heading, not wherever the
+    phone pointed during the intro narration.
+  - More forgiving gestures: tap window 250 → 350 ms, swipe window
+    450 → 900 ms — slow deliberate blind swipes now register (still safe:
+    the play phase ignores swipes, so drag-turns can't trigger menus).
+  - Haptics: 12 ms tick on every accepted click, 15 ms on a pebble throw,
+    25 ms on entering pause — confirms input landed on a black screen.
+  - Start-gate hint text is now device-aware ("tap anywhere" on phones,
+    "tap / Space / W" on desktop) instead of always mentioning Space.
+  - Walk-in-place toggle (`swipe left` in pause) persists via
+    `localStorage` across sessions.
+  - Corrected 43 changelog timestamps that had drifted 30 min–6 h ahead
+    of their actual commit times (verified against `git log`).
+- Validation: `tsc --noEmit` clean; 110/110 vitest; `vite build` clean.
+- Not verified: real-device feel — haptic durations and the 0.12° snap
+  band should be checked by hand on an actual phone.
+
+## 2026-10-25T03:16:00+05:30 — Follow-up fixes to the hardening pass
 
 - Changed: `vite.config.ts`, `src/style.css`, `src/main.ts`,
   `src/narration/narrator.ts`, `src/input/keyboard.ts`, `src/game/loop.ts`.
@@ -113,7 +140,7 @@
   pebble timers, beacon target and caught-ranking changes are code-reviewed
   but worth one manual playthrough of The Hold before demo.
 
-## 2026-10-25T04:25:00+05:30 — Exact 'O' ink-centre alignment + re-centered wordmark
+## 2026-10-25T02:44:00+05:30 — Exact 'O' ink-centre alignment + re-centered wordmark
 
 - Changed: `src/main.ts`, `src/style.css`.
 - Why (user feedback): the sonar rings and core dot were still not
@@ -132,7 +159,7 @@
   clean; headless screenshots verified ping centre on `O`.
 - Limitations: none.
 
-## 2026-10-25T04:10:00+05:30 — Remove ghost 300×150 rounded rectangle on landing/boot screen
+## 2026-10-25T02:30:00+05:30 — Remove ghost 300×150 rounded rectangle on landing/boot screen
 
 - Changed: `src/style.css`.
 - Why (user screenshot & follow-up): a 300×150 rounded-corner dark
@@ -151,7 +178,7 @@
 - Validation: `npx tsc --noEmit` clean; `vitest` 105/105; `vite build` clean.
 - Limitations: none.
 
-## 2026-10-25T04:00:00+05:30 — Duck exit wind & drips when creature is near
+## 2026-10-25T02:26:00+05:30 — Duck exit wind & drips when creature is near
 
 - Changed: `src/audio/sources.ts`, `src/game/loop.ts`.
 - Why (user design insight): when the creature is close, the exit wind
@@ -174,7 +201,7 @@
 - Limitations: wind stays at ~8–10% floor rather than 0% so it never
   clicks on/off abruptly.
 
-## 2026-10-25T03:45:00+05:30 — Auto-hide leaderboard, replay sync, no accidental round-start from results
+## 2026-10-25T02:24:00+05:30 — Auto-hide leaderboard, replay sync, no accidental round-start from results
 
 - Changed: `src/spectate/boardui.ts`, `src/replay/results.ts`, `src/main.ts`,
   `src/spectate/watch.ts`.
@@ -201,7 +228,7 @@
 - Limitations: blindfolded touch mode (`!visual`) still advances on tap
   when the leaderboard is not open.
 
-## 2026-10-25T03:30:00+05:30 — Returning-player picker + best-score deduplication
+## 2026-10-25T02:18:00+05:30 — Returning-player picker + best-score deduplication
 
 - Changed: `src/spectate/leaderboard.ts`, `src/spectate/boardui.ts`,
   `src/style.css`, `tests/leaderboard.test.ts`.
@@ -224,7 +251,7 @@
 - Limitations: deduplication is per board key (calm and normal boards stay
   independent by design).
 
-## 2026-10-25T03:15:00+05:30 — Start gate, leaderboard dismiss, Hold audio declutter
+## 2026-10-25T02:15:00+05:30 — Start gate, leaderboard dismiss, Hold audio declutter
 
 - Changed: `src/game/loop.ts`, `src/main.ts`, `src/spectate/boardui.ts`,
   `src/spectate/watch.ts`, `src/style.css`.
@@ -270,7 +297,7 @@
   tap (same gesture as before, now consumed cleanly as "begin" instead of
   firing a click).
 
-## 2026-10-25T02:55:00+05:30 — O-ping polish: em-centred, emitting O
+## 2026-10-25T01:43:00+05:30 — O-ping polish: em-centred, emitting O
 
 - Changed: `src/style.css`.
 - Why (user repeat ask): tighten the ring origin and make the emission
@@ -287,7 +314,7 @@
 - Limitations: if the site still shows old rings it's a stale service
   worker — closing all tabs or clearing site data once forces takeover.
 
-## 2026-10-25T02:40:00+05:30 — O-ping: alignment, liveliness, no box edge
+## 2026-10-25T01:40:00+05:30 — O-ping: alignment, liveliness, no box edge
 
 - Changed: `src/main.ts`, `src/style.css`.
 - Why (user feedback): the sonar ring at `scale(7)` grew to ~560 px and
@@ -308,7 +335,7 @@
 - Limitations: ink-centre is an approximation (glyph box ~46%); checked
   visually across title sizes, ±1–2 px at extremes.
 
-## 2026-10-25T02:20:00+05:30 — Fix Shift+L board clear
+## 2026-10-25T01:31:00+05:30 — Fix Shift+L board clear
 
 - Changed: `src/spectate/boardui.ts`, `src/spectate/watch.ts`, `src/main.ts`.
 - Why (user report "Shift+L not working"): three causes —
@@ -324,7 +351,7 @@
 - Validation: `npx tsc --noEmit` clean; `vitest` 104/104; `vite build` clean.
 - Limitations: browser `confirm()` dialog is the confirmation UI.
 
-## 2026-10-25T02:05:00+05:30 — Menu: drop backdrop panel, ping from the O
+## 2026-10-25T01:28:00+05:30 — Menu: drop backdrop panel, ping from the O
 
 - Changed: `src/main.ts`, `src/style.css`.
 - Why (user direction): the landing page read as a rectangle behind the
@@ -341,7 +368,7 @@
 - Limitations: the O-centre approximation is the glyph-box centre —
   visually indistinguishable across the clamp(2.6–4.4rem) title sizes.
 
-## 2026-10-25T01:45:00+05:30 — Leaderboard fixes + editable entries
+## 2026-10-25T01:24:00+05:30 — Leaderboard fixes + editable entries
 
 - Changed: `src/spectate/leaderboard.ts`, `src/spectate/boardui.ts`,
   `src/spectate/watch.ts`, `src/main.ts`, `src/style.css`,
@@ -368,7 +395,7 @@
   hand-edited (deliberate: no score forgery); row edits are blocked while
   a name prompt is open.
 
-## 2026-10-25T01:10:00+05:30 — Batch E self-review: edge-case fixes
+## 2026-10-25T01:09:00+05:30 — Batch E self-review: edge-case fixes
 
 - Changed: `src/game/loop.ts`, `src/input/gestures.ts`,
   `src/spectate/leaderboard.ts`, `src/spectate/boardui.ts`,
@@ -399,7 +426,7 @@
   throw is physical — it can't un-throw); a run ranking below top-5 saves
   but shows no visible highlight row.
 
-## 2026-10-24T21:53:05+05:30 — Correct Devin Hack Kochi event guidance
+## 2026-10-24T21:56:00+05:30 — Correct Devin Hack Kochi event guidance
 
 - Changed: corrected the current event name and AI tool guidance in `.github/pull_request_template.md`, `AGENTS.md`, `AI_USAGE.md`, `CHANGELOG.md`, `README.md`, `RULES.md`, `SUBMISSION.md`.
 - Why: the organizer shared an older event template; Devin Hack Kochi has no
@@ -409,7 +436,7 @@
 - Validation: reviewed documentation diffs, checked whitespace with `git diff --check`, and checked local Markdown links for new breakage.
 - Limitations: maintainer review is pending; application tests were not run for this documentation-only correction.
 
-## 2026-10-24T21:20:00+05:30 — Template migration + screenshots
+## 2026-10-24T21:23:00+05:30 — Template migration + screenshots
 
 - Changed: imported full project into the DevDay template repository; added
   `scripts/screenshots.ts` (renders real level maps + echo hits to PNG) and
@@ -420,7 +447,7 @@
   of `hold-run.png` (walls, path, click rings, echo lines, creature).
 - Limitations: screenshots are static renders, not device captures.
 
-## 2026-10-24T21:05:00+05:30 — Initial build: Echo complete
+## 2026-10-24T21:17:00+05:30 — Initial build: Echo complete
 
 - Changed: full implementation of ECHO_SPEC.md — three batches (engine, game,
   reveal/polish) in one pass. All of `src/`, `tests/`, PWA config, docs.
@@ -430,7 +457,7 @@
 - Limitations: Vercel deploy and on-device checklist (spec §14) pending;
   deviations logged in NOTES.md.
 
-## 2026-10-24T21:35:00+05:30 — Narrator queue race fix
+## 2026-10-24T21:31:00+05:30 — Narrator queue race fix
 
 - Changed: `src/narration/narrator.ts` — re-check `speaking` after awaiting
   voice resolution; a second queued line could overlap the in-flight one.
@@ -438,7 +465,7 @@
 - Validation: `tsc --noEmit` clean; `vitest run` 54/54 pass.
 - Limitations: none identified.
 
-## 2026-10-24T21:40:00+05:30 — Visual testing mode
+## 2026-10-24T21:37:00+05:30 — Visual testing mode
 
 - Changed: `src/main.ts`, `src/debug/overlay.ts`, `src/style.css` — live
   top-down map during play plus status line and desktop key hints. On by
@@ -450,7 +477,7 @@
 - Validation: `tsc --noEmit` clean; `vitest run` 54/54 pass; `vite build` clean.
 - Limitations: visual mode is a test aid, not part of the shipped play UX.
 
-## 2026-10-24T21:45:00+05:30 — Desktop testability + audio fixes
+## 2026-10-24T21:42:00+05:30 — Desktop testability + audio fixes
 
 - Changed: `src/game/loop.ts` — sensor heading gated to touch devices (laptop
   orientation sensors no longer override A/D); footstep gain reduced; HUD now
@@ -466,7 +493,7 @@
 - Validation: `tsc --noEmit` clean; `vitest run` 54/54 pass; `vite build` clean.
 - Limitations: none identified in these checks.
 
-## 2026-10-24T21:55:00+05:30 — UI/UX polish pass (sonar theme)
+## 2026-10-24T21:44:00+05:30 — UI/UX polish pass (sonar theme)
 
 - Changed: `src/style.css` rewritten with a design-token palette (near-black
   blue, cyan echo accents, amber/red danger); boot screen gets pulsing sonar
@@ -478,7 +505,7 @@
 - Validation: `tsc --noEmit` clean; `vitest run` 54/54; `vite build` clean.
 - Limitations: visual review of the deployed build still pending.
 
-## 2026-10-24T22:05:00+05:30 — Echo readability + gesture edge cases
+## 2026-10-24T21:54:00+05:30 — Echo readability + gesture edge cases
 
 - Changed: `src/audio/tuning.ts` — echoTimeScale 3→5, echoGain 0.9→1.15,
   clickGain 0.5→0.45, reverbAmount 0.12→0.08 so echoes are audible and
@@ -494,7 +521,7 @@
 - Limitations: echo gain values are playtested on desktop speakers, not yet
   tuned on earphones.
 
-## 2026-10-24T22:20:00+05:30 — Gap notch made readable
+## 2026-10-24T21:57:00+05:30 — Gap notch made readable
 
 - Changed: `src/audio/echo.ts` — echo amplitude multiplied by bin ray
   coverage so partially-filled bins sound proportionally dimmer;
@@ -507,7 +534,7 @@
 - Limitations: shoulder-bin dimming also softens wall edges; acceptable
   trade-off, tunable.
 
-## 2026-10-24T22:35:00+05:30 — Open-air cue for gaps + level picker
+## 2026-10-24T22:11:00+05:30 — Open-air cue for gaps + level picker
 
 - Changed: `src/audio/synth.ts`, `src/audio/echo.ts` — each contiguous arc of
   empty bins emits a panned airy whoosh so openings give a positive cue;
@@ -521,7 +548,7 @@
 - Limitations: open-air cue is an addition to the spec's pure-silence rule,
   documented in NOTES.md.
 
-## 2026-10-24T22:45:00+05:30 — Skip/mute narration + better voice choice
+## 2026-10-24T22:16:00+05:30 — Skip/mute narration + better voice choice
 
 - Changed: `src/narration/narrator.ts`, `src/game/loop.ts`, `src/input/keyboard.ts`,
   `src/main.ts` — any click/walk/Enter immediately cuts off queued narration;
@@ -531,7 +558,7 @@
 - Validation: `tsc` clean; 54/54 tests; `vite build` clean.
 - Limitations: none identified.
 
-## 2026-10-24T22:55:00+05:30 — Forward-focused echoes + chime for openings
+## 2026-10-24T22:18:00+05:30 — Forward-focused echoes + chime for openings
 
 - Changed: `src/audio/synth.ts`, `src/audio/echo.ts`, `src/game/loop.ts` —
   replaced the noise-whoosh opening cue with a warm 3-note chime; attenuated
@@ -544,7 +571,7 @@
 - Limitations: forward-focus + chime are playability additions to the spec's
   equal-bin model, documented in NOTES.md.
 
-## 2026-10-24T23:05:00+05:30 — Level audit + beacon audibility floor
+## 2026-10-24T22:32:00+05:30 — Level audit + beacon audibility floor
 
 - Changed: `src/audio/sources.ts`, `src/game/loop.ts` — optional min-gain
   floor on PositionalLoop; beacon floors at 15% of base gain so the
@@ -557,7 +584,7 @@
 - Limitations: floor keeps gain flat beyond ~12m; directionality is still
   encoded by the panner.
 
-## 2026-10-24T23:20:00+05:30 — Creature stuck fix, proximity cues, Calm mode
+## 2026-10-24T22:36:00+05:30 — Creature stuck fix, proximity cues, Calm mode
 
 - Changed: `src/game/creature.ts` — reaching the end of a hunt/investigate
   path with nothing found now returns to wander instead of standing frozen;
@@ -571,7 +598,7 @@
 - Validation: `tsc` clean; 54/54 tests; `vite build` clean.
 - Limitations: creature chase smoothness not verified on-device yet.
 
-## 2026-10-24T23:55:00+05:30 — Directional audio cues for beacon + creature
+## 2026-10-24T22:51:00+05:30 — Directional audio cues for beacon + creature
 
 - Changed: `src/audio/engine.ts` new `stereoAt()` StereoPanner helper
   exaggerating left/right from relative angle. `src/audio/sources.ts`
@@ -586,7 +613,7 @@
 - Validation: `tsc` clean; 54/54 tests; `vite build` clean.
 - Limitations: perceptual clarity unverified until on-earphone playtest.
 
-## 2026-10-25T00:20:00+05:30 — Walls level forgiveness pass
+## 2026-10-24T22:59:00+05:30 — Walls level forgiveness pass
 
 - Changed: `src/levels/walls.ts` gap widened 2→3 cells centred on the
   player (~45° silent notch vs ~15°), intro/hints now teach "knock = wall,
@@ -600,7 +627,7 @@
   shows ±15° bins near-silent (amp ≤0.02) when facing the gap.
 - Limitations: none known; notch width tuned for tutorial forgiveness.
 
-## 2026-10-25T01:30:00+05:30 — Batch D: Draw a Room + Hunter Mode
+## 2026-10-24T23:21:00+05:30 — Batch D: Draw a Room + Hunter Mode
 
 - Added `src/custom/codec.ts` — drawn-room codec (deflate→base64url in
   `?custom=`), deterministic meta generation (rt60 from size, spawn heading
@@ -634,7 +661,7 @@
 - Limitations: Supabase realtime paths untested end-to-end pending env
   vars on Vercel; /draw needs the Vercel rewrite for direct links.
 
-## 2026-10-25T02:00:00+05:30 — Declutter the desktop visual UI
+## 2026-10-24T23:23:00+05:30 — Declutter the desktop visual UI
 
 - Changed: `src/debug/overlay.ts` — visual-mode HUD chips trimmed to
   heard/creature/heading (engine internals only in non-visual debug mode);
@@ -648,7 +675,7 @@
 - Validation: `tsc` clean; 78/78 tests; `vite build` clean.
 - Limitations: none.
 
-## 2026-10-25T02:30:00+05:30 — Debug map hidden by default
+## 2026-10-24T23:24:00+05:30 — Debug map hidden by default
 
 - Changed: `src/main.ts` — overlay no longer force-shown at menu or level
   start; it opens only via ` (backquote) or `?debug=1`. Menu map preview
@@ -658,7 +685,7 @@
 - Validation: `tsc` clean; 78/78 tests; `vite build` clean.
 - Limitations: none.
 
-## 2026-10-25T03:05:00+05:30 — The Hold rebalance + beacon aiming clarity
+## 2026-10-24T23:50:00+05:30 — The Hold rebalance + beacon aiming clarity
 
 - Changed: `src/game/creature.ts` — footsteps can no longer trigger a hunt
   (only clicks within huntEnter can); during a hunt the creature charges the
@@ -686,7 +713,7 @@
   players click when they shouldn't); balance validated by simulation, not
   yet by a fresh blind playtest.
 
-## 2026-10-25T03:40:00+05:30 — Real landing/menu screen
+## 2026-10-25T00:02:00+05:30 — Real landing/menu screen
 
 - Changed: `src/main.ts` — new `#menu` screen shown in the menu phase on
   every device: ECHO wordmark, one-line pitch ("A game played in total
@@ -703,7 +730,7 @@
 - Validation: `tsc` clean; 82/82 tests; `vite build` clean.
 - Limitations: none.
 
-## 2026-10-25T04:10:00+05:30 — Atmosphere pass (grain, vignette, drone)
+## 2026-10-25T00:04:00+05:30 — Atmosphere pass (grain, vignette, drone)
 
 - Changed: `src/style.css` — animated film grain (feTurbulence, ~3% opacity)
   and a breathing radial vignette over the whole app; a rare ~120 ms title
@@ -717,7 +744,7 @@
 - Limitations: the drone needs the post-tap audio context (menus only,
   never during play so it can't mask game cues).
 
-## 2026-10-25T04:25:00+05:30 — Doc accuracy pass (template compliance)
+## 2026-10-25T00:05:00+05:30 — Doc accuracy pass (template compliance)
 
 - Changed: `SUBMISSION.md` — final implementation SHA `879127b`, test count
   82/82 with the real suite description, limitations corrected (Vercel is
@@ -731,7 +758,7 @@
 - Validation: documentation diff review; no code changed.
 - Limitations: none.
 
-## 2026-10-25T04:45:00+05:30 — PWA update takeover fix
+## 2026-10-25T00:07:00+05:30 — PWA update takeover fix
 
 - Changed: `vite.config.ts` — `workbox.skipWaiting` + `clientsClaim` so a new
   service worker activates immediately instead of waiting for all old-version
@@ -741,7 +768,7 @@
 - Validation: `vite build` regenerates the SW with the new flags.
 - Limitations: tabs already open still need one reload to pick this up.
 
-## 2026-10-25T05:00:00+05:30 — Fix permanently-visible tuning panel
+## 2026-10-25T00:10:00+05:30 — Fix permanently-visible tuning panel
 
 - Changed: `src/style.css` — added `#tuning-panel.hidden` and
   `#debug-overlay.hidden { display: none }`. There was never a global
@@ -752,7 +779,7 @@
 - Validation: `vite build` clean; panel hidden until `T` toggles it.
 - Limitations: none.
 
-## 2026-10-25T05:20:00+05:30 — Deeper horror atmosphere pass
+## 2026-10-25T00:15:00+05:30 — Deeper horror atmosphere pass
 
 - Changed: `src/style.css` — two large soft shadow masses (`.fog`) that drift
   slowly across every screen; denser grain (4.5%) and a deeper breathing
@@ -768,7 +795,7 @@
 - Limitations: ambience only on menu/results — never during play, so game
   cues stay clean.
 
-## 2026-10-25T05:30:00+05:30 — Watermark
+## 2026-10-25T00:16:00+05:30 — Watermark
 
 - Changed: `index.html`, `src/style.css` — a small `caine × devin` mark in
   the bottom-left corner on every route (game, /watch, /draw); dim cyan,
@@ -776,7 +803,7 @@
 - Validation: `vite build` clean.
 - Limitations: none.
 
-## 2026-10-25T05:45:00+05:30 — Room code visibility
+## 2026-10-25T00:23:00+05:30 — Room code visibility
 
 - Changed: `src/main.ts` — when the spectator connection fails, the corner
   now reads "spectator off" instead of staying blank (silence was
@@ -787,13 +814,13 @@
 - Limitations: the code still only exists after the boot tap (the channel
   connects inside the first gesture).
 
-## 2026-10-25T06:00:00+05:30 — Watermark findable
+## 2026-10-25T00:24:00+05:30 — Watermark findable
 
 - Changed: `src/style.css` — `#wm` opacity 0.35 → 0.55, cyan-dim → cyan,
   0.68rem → 0.72rem. It was deployed but effectively invisible.
 - Validation: deployed HTML confirmed to contain `#wm`; visual only.
 
-## 2026-10-25T06:55:00+05:30 — Batch E: pebble throws + projector leaderboard
+## 2026-10-25T00:44:00+05:30 — Batch E: pebble throws + projector leaderboard
 
 - **D3 Throw a Pebble** (`src/game/pebble.ts`, `gestures.ts`, `keyboard.ts`,
   `synth.ts`, `loop.ts`, `recorder.ts`, `render.ts`, `results.ts`, `net.ts`,

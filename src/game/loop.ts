@@ -173,6 +173,10 @@ export class GameSession {
     this.last = performance.now();
     this.breathing?.start();
     this.beacon?.start();
+    // Re-baseline at Start-press pose — the direction the player actually
+    // faces when the round begins becomes the level's spawn heading, not
+    // wherever they happened to point while the intro spoke.
+    this.deps.orientation.resetBaseline(this.level.meta.playerHeading);
   }
 
   // ── input routed by the app ──────────────────────────────────────────
@@ -200,6 +204,9 @@ export class GameSession {
     const now = performance.now();
     if (now - this.lastClickAt < this.deps.tuning.clickCooldownMs) return;
     this.lastClickAt = now;
+    // A 12 ms tick confirms the tap registered — on a screen-off game the
+    // player otherwise can't tell a dropped tap from a silent room.
+    if (this.deps.isTouch) navigator.vibrate?.(12);
     const t = this.deps.tuning;
     const echo = computeEcho(this.level, this.player.x, this.player.y, this.player.heading, t);
     this.lastEcho = echo;
@@ -231,6 +238,7 @@ export class GameSession {
       this.playCentred(this.deps.sounds.pebbleEmpty, 0.5);
       return;
     }
+    if (this.deps.isTouch) navigator.vibrate?.(15);
     const from = { x: this.player.x, y: this.player.y };
     const th = pebbleLanding(this.level, from.x, from.y, this.player.heading);
     // A wall at your feet has no flight — skip the whoosh entirely.

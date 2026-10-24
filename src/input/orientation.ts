@@ -50,7 +50,7 @@ export class OrientationTracker {
   private attached = false;
   /** levelHeading offset applied so start pose = level's playerHeading. */
   private levelHeading = 0;
-  private smoothing = 0.25; // low-pass per sample
+  private smoothing = 0.3; // low-pass per sample
 
   attach(): void {
     if (this.attached) return;
@@ -82,7 +82,9 @@ export class OrientationTracker {
       this.heading = target;
     } else {
       const d = deltaAngle(target, this.heading);
-      this.heading = wrap360(this.heading + d * this.smoothing);
+      // Snap inside a small band — pure EMA asymptotes toward the target and
+      // gyro noise keeps the heading micro-drifting when holding still.
+      this.heading = Math.abs(d) < 0.12 ? target : wrap360(this.heading + d * this.smoothing);
     }
   }
 
