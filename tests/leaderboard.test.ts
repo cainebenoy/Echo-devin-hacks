@@ -43,6 +43,50 @@ describe('ranking', () => {
   });
 });
 
+describe('caught ranking', () => {
+  it('among caught runs, surviving longer beats dying fast', () => {
+    const ranked = rankEntries([
+      entry({ name: 'died-fast', outcome: 'caught', duration: 12 }),
+      entry({ name: 'survived', outcome: 'caught', duration: 95 }),
+    ]);
+    expect(ranked.map((e) => e.name)).toEqual(['survived', 'died-fast']);
+    // Wins still rank fastest-first.
+    const wins = rankEntries([
+      entry({ name: 'slow-win', outcome: 'win', duration: 80 }),
+      entry({ name: 'fast-win', outcome: 'win', duration: 20 }),
+    ]);
+    expect(wins.map((e) => e.name)).toEqual(['fast-win', 'slow-win']);
+  });
+
+  it('a caught player improves by surviving longer, not by dying faster', () => {
+    const st = memStore();
+    saveRun('hold', run({ outcome: 'caught', duration: 60 }), 'a', st);
+    const faster = saveRun('hold', run({ outcome: 'caught', duration: 30 }), 'a', st);
+    // Dying in 30s after surviving 60s is NOT an improvement — best kept.
+    expect(faster.improved).toBe(false);
+    const longer = saveRun('hold', run({ outcome: 'caught', duration: 90 }), 'a', st);
+    expect(longer.improved).toBe(true);
+    const board = loadBoard('hold', st);
+    expect(board).toHaveLength(1);
+    expect(board[0].duration).toBe(90);
+  });
+});
+
+describe('anonymous players', () => {
+  it('unnamed runs get their own rows — Anonymous never merges', () => {
+    const st = memStore();
+    saveRun('hold', run({ duration: 60 }), 'Anonymous', st);
+    saveRun('hold', run({ duration: 45 }), 'Anonymous', st);
+    saveRun('hold', run({ duration: 30 }), 'anonymous', st);
+    const board = loadBoard('hold', st);
+    expect(board).toHaveLength(3);
+    expect(board.map((e) => e.duration)).toEqual([30, 45, 60]);
+    // Renaming one Anonymous row to another's name doesn't collapse rows.
+    renameEntry('hold', board[0].at, 'Anonymous', st);
+    expect(loadBoard('hold', st)).toHaveLength(3);
+  });
+});
+
 describe('board keys', () => {
   it('calm runs never mix with normal runs', () => {
     expect(boardKey({ levelId: 'hold' })).toBe('hold');
@@ -88,7 +132,9 @@ describe('storage', () => {
     const board = loadBoard('hold', st);
     expect(board).toHaveLength(BOARD_TOP);
     expect(board[0].name).toBe('champ');
-    expect(board.some((e) => e.name === `c${BOARD_TOP + 4}`)).toBe(false);
+    // Caught runs rank by LONGEST survival — the shortest survivor drops.
+    expect(board.some((e) => e.name === 'c0')).toBe(false);
+    expect(board.some((e) => e.name === `c${BOARD_TOP + 4}`)).toBe(true);
   });
 
   it('saveRun reports the rank and whether it is a new #1', () => {

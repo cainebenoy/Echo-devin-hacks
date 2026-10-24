@@ -49,12 +49,16 @@ export function sanitizeName(raw: string): string {
 /** Compare two entries: < 0 if `a` ranks ahead of `b`. */
 export function compareEntries(a: BoardEntry, b: BoardEntry): number {
   if ((a.outcome === 'win') !== (b.outcome === 'win')) return a.outcome === 'win' ? -1 : 1;
-  if (a.duration !== b.duration) return a.duration - b.duration;
+  if (a.duration !== b.duration) {
+    // Escapes rank fastest-first; caught runs rank LONGEST-first —
+    // surviving longer is the achievement, dying fast is not.
+    return a.outcome === 'win' ? a.duration - b.duration : b.duration - a.duration;
+  }
   if (a.clicks !== b.clicks) return a.clicks - b.clicks;
   return a.at - b.at;
 }
 
-/** Ranking: escaped before caught → shorter duration → fewer clicks. */
+/** Ranking: escaped before caught → fastest escape / longest survival → fewer clicks. */
 export function rankEntries(entries: BoardEntry[]): BoardEntry[] {
   return [...entries].sort(compareEntries);
 }
@@ -116,7 +120,10 @@ export function saveRun(
     at,
   };
   const norm = name.toLowerCase();
-  const existingIdx = prev.findIndex((e) => e.name.toLowerCase() === norm);
+  // 'anonymous' is not a player — every unnamed run gets its own row.
+  const existingIdx = norm === 'anonymous'
+    ? -1
+    : prev.findIndex((e) => e.name.toLowerCase() === norm);
   let merged: BoardEntry[];
   let activeEntry: BoardEntry;
   let improved = true;
@@ -162,7 +169,9 @@ export function renameEntry(key: string, at: number, name: string, s?: StoreLike
   const seen = new Map<string, BoardEntry>();
   for (const e of rankEntries(raw)) {
     const k = e.name.toLowerCase();
-    if (!seen.has(k)) seen.set(k, e); // rankEntries puts best first
+    // 'anonymous' rows never merge — each is a different unnamed player.
+    if (k !== 'anonymous' && !seen.has(k)) seen.set(k, e); // rankEntries puts best first
+    else if (k === 'anonymous') seen.set(`anon:${e.at}`, e);
   }
   const deduped = rankEntries([...seen.values()]);
   try { st.setItem(PREFIX + key, JSON.stringify(deduped)); } catch { /* full/blocked */ }

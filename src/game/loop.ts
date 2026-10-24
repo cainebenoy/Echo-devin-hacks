@@ -78,6 +78,15 @@ export class GameSession {
   private dragTurnDeg = 0;
   private pouch = new PebblePouch();
   private lastThrowAt = -Infinity;
+  /** Pebbles fly on the run clock, not setTimeout — a pause freezes them. */
+  private inFlight: { th: PebbleThrow; from: { x: number; y: number }; landAt: number }[] = [];
+  /** BFS field rooted at the player's cell — cached until the cell changes. */
+  private cachedField: BfsField | null = null;
+  private fieldCellX = NaN;
+  private fieldCellY = NaN;
+  /** Identifies this run to spectators so rebroadcast 'start's dedupe. */
+  private runId = '';
+  private nextStartResend = 0;
 
   constructor(deps: SessionDeps) {
     this.deps = deps;
@@ -95,6 +104,11 @@ export class GameSession {
     this.fallbackChecked = false;
     this.pouch.reset();
     this.lastThrowAt = -Infinity;
+    this.inFlight = [];
+    this.cachedField = null;
+    this.fieldCellX = this.fieldCellY = NaN;
+    this.runId = `${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
+    this.nextStartResend = 4;
     this.player.spawn(level);
     this.deps.engine.setReverb(level.meta.rt60);
     this.recorder = new Recorder(level.meta.id, level.meta.name);
@@ -122,14 +136,10 @@ export class GameSession {
       if (this.armed) this.beacon.start();
     }
 
-    this.deps.net.event({
-      type: 'start', levelId: level.meta.id, levelName: level.meta.name,
-      // Drawn rooms carry their encoded form so /watch can rebuild the map.
-      custom: level.meta.id === 'custom'
-        ? encodeCustom({ name: level.meta.name, beacon: level.meta.beacon, map: level.map })
-        : undefined,
-    });
-    const intro = [...level.meta.narration.intro];
+    this.broadcastStart();
+    // Desktop hears Q, not "flick up" — the throw line swaps by device.
+    const intro = level.meta.narration.intro.map((l) =>
+      l === MENU.pebbleIntro && !this.deps.isTouch ? MENU.pebbleIntroDesktop : l);
     if (intro.length > 1 && level.meta.creature && this.deps.hunter.claimed) {
       intro[1] = "Something is down here with you. This time, it's a person.";
     }
@@ -222,7 +232,7 @@ export class GameSession {
     const th = pebbleLanding(this.level, from.x, from.y, this.player.heading);
     // A wall at your feet has no flight — skip the whoosh entirely.
     if (th.dist > 0.3) this.playWhoosh(th);
-    window.setTimeout(() => this.landPebble(th, from), th.flightSec * 1000);
+    this.inFlight.push({ th, from, landAt: this.runT + th.flightSec });
   }
 
   /** Flight sound — pans toward the landing's apparent direction, fades. */
@@ -305,7 +315,30 @@ export class GameSession {
 
   private currentField(): BfsField | null {
     if (!this.level) return null;
-    return bfsField(this.level, Math.floor(this.player.x), Math.floor(this.player.y));
+    // The field is rooted at the player's CELL — it only changes when the
+    // player crosses a boundary, so recompute on cell change, not per call.
+    const cx = Math.floor(this.player.x);
+    const cy = Math.floor(this.player.y);
+    if (!this.cachedField || cx !== this.fieldCellX || cy !== this.fieldCellY) {
+      this.cachedField = bfsField(this.level, cx, cy);
+      this.fieldCellX = cx;
+      this.fieldCellY = cy;
+    }
+    return this.cachedField;
+  }
+
+  /** The 'start' broadcast — re-sent every few seconds so a spectator or
+   * hunter who joins mid-run still learns the level (and the drawn room). */
+  private broadcastStart(): void {
+    const level = this.level;
+    this.deps.net.event({
+      type: 'start', levelId: level.meta.id, levelName: level.meta.name,
+      runId: this.runId,
+      // Drawn rooms carry their encoded form so /watch can rebuild the map.
+      custom: level.meta.id === 'custom'
+        ? encodeCustom({ name: level.meta.name, beacon: level.meta.beacon, map: level.map })
+        : undefined,
+    });
   }
 
   private creatureEvents() {
@@ -425,6 +458,12 @@ export class GameSession {
       if (this.stepBudget < 0) this.stepBudget = 0;
     }
 
+    // Pebbles land on the run clock — frozen while paused like everything else.
+    while (this.inFlight.length > 0 && this.inFlight[0].landAt <= this.runT) {
+      const p = this.inFlight.shift()!;
+      this.landPebble(p.th, p.from);
+    }
+
     const field = this.currentField();
 
     // Creature: human hunter drives when connected; AI otherwise, resuming
@@ -498,7 +537,14 @@ export class GameSession {
     // Beacon — ducks down when the creature is close so you can locate and
     // evade the threat first, then swells back as you create distance.
     if (this.beacon && field && this.level.exits.length > 0) {
-      const e = this.level.exits[0];
+      // Aim at the NEAREST exit by path distance — rooms with several exits
+      // must not guide you to a far one past a nearer way out.
+      let e = this.level.exits[0];
+      let best = Infinity;
+      for (const ex of this.level.exits) {
+        const d = fieldDist(field, ex.col, ex.row);
+        if (d >= 0 && d < best) { best = d; e = ex; }
+      }
       const p = propagate(this.level, field,
         this.player.x, this.player.y, this.player.heading,
         e.col + 0.5, e.row + 0.5);
@@ -514,6 +560,13 @@ export class GameSession {
 
     this.recorder.tick(this.runT, this.player.x, this.player.y, this.player.heading,
       this.creature?.x, this.creature?.y, this.creature?.state);
+
+    // Re-announce the run every 4 s — spectators/hunters joining mid-run
+    // rebuild the level (and drawn room) without waiting for the next level.
+    if (this.runT >= this.nextStartResend) {
+      this.nextStartResend = this.runT + 4;
+      this.broadcastStart();
+    }
 
     // Spectator publish at 15 Hz.
     if (this.runT >= this.nextPublish) {

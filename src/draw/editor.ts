@@ -33,6 +33,10 @@ interface RecentRoom { name: string; data: string; at: number }
 export function startDrawPage(root: HTMLElement): void {
   root.innerHTML = '';
   document.body.className = 'draw';
+  // The editor is a normal scrollable/zoomable page — the game's
+  // user-scalable=no viewport is re-applied when the game page reloads.
+  document.querySelector('meta[name="viewport"]')
+    ?.setAttribute('content', 'width=device-width, initial-scale=1, viewport-fit=cover');
 
   let width = 16;
   let height = 12;
@@ -40,7 +44,11 @@ export function startDrawPage(root: HTMLElement): void {
   let tool: Tool = '#';
   let beacon = true;
   let painting = false;
-  const undoStack: string[][][] = [];
+  interface Snapshot { cells: string[][]; width: number; height: number }
+  const undoStack: Snapshot[] = [];
+  /** The pre-stroke grid, captured lazily so a click that changes nothing
+   *  doesn't push an undo step that appears to do nothing. */
+  let strokePre: Snapshot | null = null;
 
   function blankGrid(w: number, h: number): string[][] {
     const g: string[][] = [];
@@ -132,18 +140,18 @@ export function startDrawPage(root: HTMLElement): void {
 
   function paint(c: number, r: number): void {
     if (c < 0 || r < 0 || c >= width || r >= height) return;
+    const willChange = isBorder(c, r)
+      ? (tool === 'E' || tool === '.') && cells[r][c] !== (tool === 'E' ? 'E' : '#')
+      : cells[r][c] !== tool;
+    if (!willChange) return;
+    if (!strokePre) {
+      strokePre = { cells: cells.map((row) => [...row]), width, height };
+    }
     if (isBorder(c, r)) {
       // The boundary is always stone; only E may replace it, and erasing an
       // exit restores stone.
-      if (tool === 'E' || tool === '.') {
-        const next = tool === 'E' ? 'E' : '#';
-        if (cells[r][c] === next) return;
-        cells[r][c] = next;
-      } else {
-        return;
-      }
+      cells[r][c] = tool === 'E' ? 'E' : '#';
     } else {
-      if (cells[r][c] === tool) return;
       if (tool === 'P' || tool === 'C') {
         // Single-instance: placing again moves the marker.
         for (const row of cells) {
@@ -163,11 +171,12 @@ export function startDrawPage(root: HTMLElement): void {
     };
   }
 
-  const snapshot = () => undoStack.push(cells.map((r) => [...r]));
+  const snapshot = () =>
+    undoStack.push({ cells: cells.map((r) => [...r]), width, height });
 
   canvas.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    snapshot();
+    strokePre = null;
     painting = true;
     const { c, r } = cellFromEvent(e);
     paint(c, r);
@@ -177,7 +186,10 @@ export function startDrawPage(root: HTMLElement): void {
     const { c, r } = cellFromEvent(e);
     paint(c, r);
   });
-  window.addEventListener('pointerup', () => { painting = false; });
+  window.addEventListener('pointerup', () => {
+    painting = false;
+    if (strokePre) { undoStack.push(strokePre); strokePre = null; }
+  });
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
   // ── controls ─────────────────────────────────────────────────────────
@@ -208,7 +220,16 @@ export function startDrawPage(root: HTMLElement): void {
 
   undoBtn.onclick = () => {
     const prev = undoStack.pop();
-    if (prev) { cells = prev; refresh(); }
+    if (prev) {
+      // Dimensions are part of the snapshot — undoing across a resize must
+      // restore width/height too or draw() reads rows that don't exist.
+      cells = prev.cells;
+      width = prev.width;
+      height = prev.height;
+      wEl.value = String(width);
+      hEl.value = String(height);
+      refresh();
+    }
   };
   window.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
@@ -250,7 +271,8 @@ export function startDrawPage(root: HTMLElement): void {
     const data = encodeCustom(currentPayload());
     const list = recents().filter((r) => r.data !== data);
     list.unshift({ name: nameEl.value.trim() || 'Custom room', data, at: Date.now() });
-    localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 5)));
+    try { localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 5))); }
+    catch { /* private mode — recents just won't persist */ }
     renderRecents();
   }
   function renderRecents(): void {
@@ -299,11 +321,25 @@ export function startDrawPage(root: HTMLElement): void {
     const ok = v.status === 'ready';
     playBtn.disabled = !ok;
     sendBtn.disabled = !ok;
+    copyBtn.disabled = !ok;
     clearTimeout(qrTimer);
     qrTimer = window.setTimeout(() => {
+      // Never share an invalid room or a truncated link — a sliced URL
+      // decodes to a broken room on the other end.
+      const clearQr = () => qrCanvas.getContext('2d')?.clearRect(0, 0, qrCanvas.width, qrCanvas.height);
+      if (!ok) {
+        linkEl.value = '(finish a valid room to share)';
+        clearQr();
+        return;
+      }
       const url = `${location.origin}/?custom=${encodeCustom(currentPayload())}`;
-      linkEl.value = url.length > MAX_URL ? '(room too large to share)' : url;
-      void QRCode.toCanvas(qrCanvas, url.slice(0, MAX_URL), {
+      if (url.length > MAX_URL) {
+        linkEl.value = '(room too large to share)';
+        clearQr();
+        return;
+      }
+      linkEl.value = url;
+      void QRCode.toCanvas(qrCanvas, url, {
         width: 180, margin: 1,
         color: { dark: '#67e8f9', light: '#05070d' },
       }).catch(() => { /* QR render failure is cosmetic */ });

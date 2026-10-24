@@ -28,6 +28,9 @@ export class Narrator {
   private idleResolve: (() => void) | null = null;
   private stopRequested = false;
   private firstUtterance = true;
+  /** Bumped on clear() — a cancelled utterance's late onend/onerror must not
+   *  kill the NEXT line's watchdog or un-duck mid-speech. */
+  private utteranceGen = 0;
 
   constructor() {
     try { this.muted = localStorage.getItem('echo.voiceMuted') === '1'; } catch { /* noop */ }
@@ -115,10 +118,10 @@ export class Narrator {
 
   /** Say something immediately, clearing anything queued first. */
   interrupt(line: string): void {
-    this.clearQueueOnly();
-    if (typeof speechSynthesis !== 'undefined') {
-      try { speechSynthesis.cancel(); } catch { /* noop */ }
-    }
+    // A full clear — clearQueueOnly alone left `speaking` stuck true when the
+    // interrupted line was on the caption-fallback path (its timer is the only
+    // thing that resets speaking), so all later lines silently never played.
+    this.clear();
     this.say(line);
   }
 
@@ -133,6 +136,7 @@ export class Narrator {
   clear(): void {
     this.clearQueueOnly();
     this.stopRequested = true;
+    this.utteranceGen++; // in-flight utterance callbacks become no-ops
     if (typeof speechSynthesis !== 'undefined') {
       try { speechSynthesis.cancel(); } catch { /* noop */ }
     }
@@ -188,10 +192,11 @@ export class Narrator {
     u.rate = 1.25;
     u.lang = this.voice?.lang ?? 'en-US';
     const timeoutMs = 500 + 80 * line.length;
+    const gen = this.utteranceGen;
     let done = false;
     let started = false;
     const finish = () => {
-      if (done) return;
+      if (done || gen !== this.utteranceGen) return;
       done = true;
       window.clearTimeout(this.timer);
       this.engine?.duck(false);

@@ -12,6 +12,8 @@ export interface KeyboardHandlers {
   onSkipSpeech?(): void;
   onToggleVoice?(): void;
   onThrow?(): void;
+  /** ArrowLeft/Right — menu level cycling (turning still uses the key set). */
+  onArrow?(dir: -1 | 1): void;
 }
 
 export class KeyboardInput {
@@ -39,9 +41,17 @@ export class KeyboardInput {
       else if (e.code === 'Enter') this.handlers.onSkipSpeech?.();
       else if (e.code === 'KeyM') this.handlers.onToggleVoice?.();
       else if (e.code === 'KeyQ') this.handlers.onThrow?.();
+      else if (e.code === 'ArrowLeft') this.handlers.onArrow?.(-1);
+      else if (e.code === 'ArrowRight') this.handlers.onArrow?.(1);
     };
     const up = (e: KeyboardEvent) => {
       this.keys.delete(e.code);
+      this.sync();
+    };
+    // A window blur or hidden tab never delivers the keyup — without this,
+    // a held W would keep the player walking forever after alt-tab.
+    const clearKeys = () => {
+      this.keys.clear();
       this.sync();
     };
     const move = (e: MouseEvent) => {
@@ -50,18 +60,32 @@ export class KeyboardInput {
       }
     };
     const click = () => {
-      if (document.pointerLockElement !== el) el.requestPointerLock?.();
+      // Pointer lock only makes sense while a run is live — locking on the
+      // menu/results screens hides the cursor and swallows button clicks.
+      if (this.lockWanted && document.pointerLockElement !== el) el.requestPointerLock?.();
     };
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
+    window.addEventListener('blur', clearKeys);
+    document.addEventListener('visibilitychange', clearKeys);
     window.addEventListener('mousemove', move);
     el.addEventListener('click', click);
     this.bound.push(() => {
       window.removeEventListener('keydown', down);
       window.removeEventListener('keyup', up);
+      window.removeEventListener('blur', clearKeys);
+      document.removeEventListener('visibilitychange', clearKeys);
       window.removeEventListener('mousemove', move);
       el.removeEventListener('click', click);
     });
+  }
+
+  private lockWanted = false;
+
+  /** Turn pointer lock on (playing) or off (menus/results/pause). */
+  setPointerLock(want: boolean): void {
+    this.lockWanted = want;
+    if (!want && document.pointerLockElement) document.exitPointerLock();
   }
 
   private sync(): void {

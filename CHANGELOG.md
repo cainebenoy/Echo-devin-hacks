@@ -1,5 +1,80 @@
 # Change log
 
+## 2026-10-25T05:30:00+05:30 — Full code-review hardening pass (18 findings)
+
+- Changed: `src/input/keyboard.ts`, `src/style.css`, `src/draw/editor.ts`,
+  `src/main.ts`, `src/spectate/watch.ts`, `src/game/loop.ts`,
+  `src/game/creature.ts`, `src/spectate/leaderboard.ts`,
+  `src/spectate/boardui.ts`, `src/spectate/net.ts`,
+  `src/narration/narrator.ts`, `src/narration/script.ts`,
+  `src/debug/overlay.ts`, `vite.config.ts`,
+  `tests/leaderboard.test.ts`, `tests/narrator.test.ts` (new).
+- Why (external review): a full source review found demo-breaking issues —
+  pointer lock swallowing all desktop button clicks, `/draw` unscrollable,
+  editor undo crash after resize, drawn-room tap hijack, spectators seeing
+  nothing when joining mid-run, and no backgrounding/audio-resume handling.
+- Changes (high severity):
+  - Pointer lock is requested only while `phase === 'playing'` and released
+    on pause/end/menu (`KeyboardInput.setPointerLock` + `syncChrome()`).
+  - `/draw` scrolls: `touch-action:none` moved from `html,body` to `#app`,
+    `body.draw #app` is static; `#results` also scrolls (`pan-y`); the
+    editor unlocks pinch-zoom via the viewport meta.
+  - `/draw` undo snapshots now store `{cells, width, height}` and restore
+    all three — undoing across a resize no longer crashes `draw()`. Paint
+    strokes snapshot lazily, so no-change clicks can't push dead undo steps.
+  - Drawn rooms: a `?custom=` offer must be ANNOUNCED (menu/results only)
+    before a tap can accept it — mid-run arrivals wait silently instead of
+    hijacking the next tap; paused taps never accept; `?custom=` is stripped
+    from the URL after loading so a reload doesn't re-enter the room.
+  - Spectators joining mid-run now see the map immediately (stage unhides on
+    first frame) and rebuild the level within ~4 s — the session rebroadcasts
+    `start` every 4 s tagged with a `runId` so rebroadcasts dedupe instead
+    of wiping the trail.
+  - Backgrounding: `visibilitychange` → hidden pauses a live run; on return
+    (and on every tap) a suspended/interrupted AudioContext is resumed.
+    Pebble flight now runs on the run clock — pausing freezes in-flight
+    pebbles instead of landing them during pause. Held keys clear on blur.
+- Changes (medium):
+  - Leaderboard: caught runs rank by LONGEST survival (dying fast no longer
+    beats surviving); `Anonymous` rows never merge or rewrite.
+  - Board outside-click also swallows the compat `click` for 350 ms (some
+    browsers still fire it after a cancelled pointerdown).
+  - Narrator `interrupt()` now does a full `clear()` — caption-mode lines
+    can no longer wedge the queue; utterance callbacks are generation-tagged
+    so a cancelled line can't kill the next line's watchdog or un-duck.
+  - Unguarded `localStorage` calls wrapped (boot-time reads in main.ts,
+    `echo.assist` write, editor recents) — blocked storage no longer blanks
+    the app.
+  - Beacon targets the NEAREST exit by path distance (was always exits[0]).
+  - `/watch`: canvas no longer rebuilt every frame on 1.25/1.5 DPR displays
+    (floored compare); `throwFx` cleared on run start; dead Retry/Menu
+    buttons hidden; hunter claim retries ×4 then shows an error.
+  - Desktop menu: ←/→ cycles levels; Space on a locked level says "Locked".
+  - `/draw` sharing is gated on a valid room — link/QR clear while invalid,
+    and oversized rooms show "too large" instead of a truncated QR/link.
+- Changes (low):
+  - `currentField()` caches the BFS field until the player changes cell
+    (was recomputed for the frame, every positional sound, each footstep,
+    and again in renderDebug).
+  - Creature wandering picks only cells reachable from its position —
+    drawn maps with sealed pockets no longer spin A* failures per frame.
+  - Desktop hears desktop lines: "Press Q to throw a pebble" and
+    button-based results summaries instead of touch gestures.
+  - While playing on a phone (`in-run`, non-visual) the watermark, room
+    code and captions hide — the screen stays black. Muted mode keeps
+    captions (they are the only narration channel left).
+  - Debug overlay renders at devicePixelRatio (was blurry on high-DPI).
+  - PWA registerType → `prompt`: a deploy mid-event can no longer
+    hard-reload a phone mid-run; updates apply on menu/results/boot.
+  - `?custom=` consumed from the URL after loading (reload stays on menu).
+- Validation: `npx tsc --noEmit` clean; `vitest` 110/110 (13 files —
+  new narrator caption/interrupt tests, caught-ranking and Anonymous-merge
+  regression tests); `vite build` clean.
+- Limitations: not browser-verified (no localhost access during this pass);
+  Supabase realtime message-size limits on very long runs are untested;
+  pebble timers, beacon target and caught-ranking changes are code-reviewed
+  but worth one manual playthrough of The Hold before demo.
+
 ## 2026-10-25T04:25:00+05:30 — Exact 'O' ink-centre alignment + re-centered wordmark
 
 - Changed: `src/main.ts`, `src/style.css`.

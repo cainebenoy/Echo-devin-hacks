@@ -9,10 +9,15 @@ export const MENU = {
   noSpeechNotice: 'Voice narration unavailable on this device.',
   sensorsFallback: 'Motion sensors unavailable. Drag one finger left or right to turn.',
   pebbleIntro: 'Flick up to throw a pebble. It can draw the creature away. You have three.',
+  pebbleIntroDesktop: 'Press Q to throw a pebble. It can draw the creature away. You have three.',
   winSummary: (durationSec: number, clicks: number) =>
     `You escaped in ${speakDuration(durationSec)}, using ${speakCount(clicks, 'click', 'clicks')}. Tap to continue, swipe down to retry.`,
   loseSummary: (durationSec: number, clicks: number) =>
     `It found you after ${speakDuration(durationSec)} and ${speakCount(clicks, 'click', 'clicks')}. Tap to try again, swipe up for the menu.`,
+  winSummaryDesktop: (durationSec: number, clicks: number) =>
+    `You escaped in ${speakDuration(durationSec)}, using ${speakCount(clicks, 'click', 'clicks')}. Choose Next level or Retry.`,
+  loseSummaryDesktop: (durationSec: number, clicks: number) =>
+    `It found you after ${speakDuration(durationSec)} and ${speakCount(clicks, 'click', 'clicks')}. Choose Retry or Menu.`,
 };
 
 function speakDuration(sec: number): string {

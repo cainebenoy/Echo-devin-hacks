@@ -16,6 +16,7 @@ export class BoardUI {
   private promptEl: HTMLElement | null = null;
   private hideTimer = 0;
   private bannerTimer = 0;
+  private swallowClickUntil = 0;
   private actx: AudioContext | null = null;
   /** The board key currently displayed (for L toggle / Shift+L clear). */
   currentKey: string | null = null;
@@ -54,6 +55,19 @@ export class BoardUI {
       e.stopPropagation();
       e.preventDefault();
       this.hide();
+      // Some browsers still dispatch the compat 'click' after a cancelled
+      // pointerdown — swallow it too (otherwise it lands on Retry/L buttons).
+      this.swallowClickUntil = performance.now() + 350;
+    }, true);
+    window.addEventListener('click', (e) => {
+      const t = e.target as Node | null;
+      if (t && this.panel.contains(t)) return;
+      if (this.promptOpen) return;
+      if (this.visible || performance.now() < this.swallowClickUntil) {
+        e.stopPropagation();
+        e.preventDefault();
+        if (this.visible) this.hide();
+      }
     }, true);
     // Escape also dismisses an open board (when no name prompt owns focus).
     window.addEventListener('keydown', (e) => {

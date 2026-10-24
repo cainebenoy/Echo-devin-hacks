@@ -21,6 +21,9 @@ export interface SpectateEvent {
   type: 'click' | 'bump' | 'start' | 'end' | 'throw';
   levelId?: string;
   levelName?: string;
+  /** Identifies the run — the 'start' broadcast is re-sent every few seconds
+   *  so mid-run joiners catch up; receivers dedupe on this. */
+  runId?: string;
   /** Encoded `?custom=` payload when the run is a drawn room. */
   custom?: string;
   hits?: { x: number; y: number }[];

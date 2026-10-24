@@ -4,7 +4,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
   plugins: [
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' so a deploy mid-run never hard-reloads a phone mid-game —
+      // main.ts calls updateSW only when the player is on a safe screen.
+      registerType: 'prompt',
       includeAssets: ['icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'Echo',

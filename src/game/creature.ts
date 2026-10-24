@@ -1,4 +1,4 @@
-import { astar, fieldDist, type BfsField } from '../world/path';
+import { astar, bfsField, fieldDist, type BfsField } from '../world/path';
 import type { CellPos, Level } from '../world/level';
 import type { FloorMaterial } from '../world/materials';
 
@@ -187,11 +187,17 @@ export class Creature {
       }
     }
     if (cells.length === 0) return;
+    // Only wander to cells reachable from here — on drawn maps with sealed
+    // pockets an unreachable target fails A* every frame and the creature
+    // re-picks forever instead of walking.
+    const reach = bfsField(l, Math.floor(this.x), Math.floor(this.y));
+    const connected = cells.filter((c) => fieldDist(reach, c.col, c.row) >= 0);
+    const pool0 = connected.length > 0 ? connected : cells;
     // Never pick a wander cell right next to the player (it would "randomly"
     // walk into them); during the grace period, stay well clear (4 m).
     const minR = this.age < this.hearing.gracePeriodSec ? 4 : 1.5;
-    let pool = cells;
-    const away = cells.filter((c) =>
+    let pool = pool0;
+    const away = pool0.filter((c) =>
       Math.hypot(c.col + 0.5 - playerPos.x, c.row + 0.5 - playerPos.y) > minR);
     if (away.length > 0) pool = away;
     const t = pool[Math.floor(this.rng() * pool.length)];

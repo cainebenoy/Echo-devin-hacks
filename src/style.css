@@ -19,12 +19,19 @@ html, body {
   color: var(--ink);
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   overscroll-behavior: none;
-  touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 }
-#app { position: fixed; inset: 0; }
+/* touch-action:none lives on #app, not html/body — a blanket none on the
+   document root also kills scrolling on scrollable pages like /draw. */
+#app { position: fixed; inset: 0; touch-action: none; }
+/* /draw is a normal scrolling page — the fixed game box would clip it. */
+body.draw #app { position: static; width: 100%; touch-action: auto; }
+/* While a run plays on a phone the screen stays black — no chrome at all.
+   Captions stay when the voice is muted (they're the only narration left). */
+body.in-run #wm, body.in-run #room-code { opacity: 0; }
+body.in-run:not(.muted) #caption { opacity: 0 !important; }
 #wm {
   position: fixed;
   bottom: 0.7rem;
@@ -444,6 +451,8 @@ body::after {
 
 
 /* ── Results ──────────────────────────────────────────────────────── */
+/* The results column can exceed small phone screens — let it scroll. */
+#results { overflow-y: auto; touch-action: pan-y; }
 #results .results-inner {
   display: flex;
   flex-direction: column;
@@ -581,7 +590,7 @@ body.draw {
   display: flex; align-items: flex-start; justify-content: center;
   min-height: 100vh; overflow-y: auto; padding: 24px 12px;
 }
-.draw-wrap { width: min(92vw, 640px); display: flex; flex-direction: column; gap: 14px; }
+.draw-wrap { width: min(92vw, 640px); margin-inline: auto; display: flex; flex-direction: column; gap: 14px; }
 .draw-wrap h1 {
   font-weight: 200; letter-spacing: 0.35em; color: var(--cyan, #67e8f9);
   text-align: center; margin: 0; font-size: clamp(1.3rem, 4vw, 1.8rem);

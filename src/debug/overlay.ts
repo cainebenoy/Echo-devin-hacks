@@ -47,9 +47,14 @@ export class DebugOverlay {
     const h = this.visual
       ? Math.min(window.innerHeight * 0.72, 560)
       : Math.min(window.innerHeight * 0.5, 420);
-    if (this.canvas.width !== w) {
-      this.canvas.width = w;
-      this.canvas.height = h;
+    // Render at device pixels — CSS-size canvas on high-DPI screens blurs.
+    const bw = Math.floor(w * devicePixelRatio);
+    const bh = Math.floor(h * devicePixelRatio);
+    if (this.canvas.width !== bw) {
+      this.canvas.width = bw;
+      this.canvas.height = bh;
+      this.canvas.style.width = `${w}px`;
+      this.canvas.style.height = `${h}px`;
     }
     if (level) renderMap(this.canvas, level, state);
     // Visual mode shows only what the player needs (heard/creature/heading).

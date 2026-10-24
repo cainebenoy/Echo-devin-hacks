@@ -61,6 +61,11 @@ export function startWatchPage(root: HTMLElement): void {
   boardUi.onHide = () => {
     if (ended) results.restartReplay();
   };
+  // The projector only replays — Retry/Menu are dead buttons here.
+  for (const id of ['#res-retry', '#res-menu']) {
+    const b = results.el.querySelector<HTMLElement>(id);
+    if (b) b.style.display = 'none';
+  }
 
   let canvas: HTMLCanvasElement;
   let level: Level | null = null;
@@ -79,6 +84,8 @@ export function startWatchPage(root: HTMLElement): void {
   let raf = 0;
   let ended = false;
   let lastTargetSent = 0;
+  let lastRunId: string | null = null;
+  let claimTries = 0;
 
   const hudLevel = () => stage.querySelector('#watch-level')!;
   const hudTimer = () => stage.querySelector('#watch-timer')!;
@@ -114,13 +121,30 @@ export function startWatchPage(root: HTMLElement): void {
       if (hunterMode && hunterAcked) {
         hudRole().textContent = f.cstate ? 'hunting — tap the map' : 'no creature on this level';
       }
+      // Joined mid-run: frames arrive before any 'start' event — show the
+      // stage as soon as we can render something (the periodic 'start'
+      // rebroadcast fills in the level + drawn room within a few seconds).
+      if (stage.classList.contains('hidden')) {
+        form.classList.add('hidden');
+        stage.classList.remove('hidden');
+        hudRole().textContent = hunterMode ? 'hunting — tap the map' : 'watching';
+      }
     }
   };
 
   sub.onEvent = (e: SpectateEvent) => {
     if (e.type === 'start') {
+      if (e.runId && e.runId === lastRunId) {
+        // Periodic rebroadcast for mid-run joiners — level info only, the
+        // live trails stay intact (a fresh 'start' would wipe the path).
+        if (e.custom) level = levelFromCustom(e.custom) ?? level;
+        form.classList.add('hidden');
+        stage.classList.remove('hidden');
+        return;
+      }
+      if (e.runId) lastRunId = e.runId;
       level = levelFromCustom(e.custom) ?? (e.levelId ? getLevel(e.levelId) : level);
-      path = []; creaturePath = []; clickFx = []; ripples = [];
+      path = []; creaturePath = []; clickFx = []; ripples = []; throwFx = [];
       runStart = performance.now();
       ended = false;
       results.hide();
@@ -214,7 +238,20 @@ export function startWatchPage(root: HTMLElement): void {
     hunterMode = asHunter;
     fogView = asHunter;
     if (asHunter) {
-      sub.send('hunter', { t: 'claim', id: myId });
+      // Claim retried a few times — a dropped broadcast must not leave the
+      // hunter staring at "Claiming…" forever.
+      claimTries = 0;
+      const tryClaim = () => {
+        if (hunterAcked || !hunterMode) return;
+        if (claimTries >= 4) {
+          err.textContent = 'No response — check the code and that a run is active.';
+          return;
+        }
+        claimTries++;
+        sub.send('hunter', { t: 'claim', id: myId });
+        window.setTimeout(tryClaim, 1400);
+      };
+      tryClaim();
       err.textContent = 'Claiming the creature…';
     } else {
       err.textContent = 'Waiting for the player…';
@@ -272,9 +309,13 @@ export function startWatchPage(root: HTMLElement): void {
   function loop(): void {
     canvas = stage.querySelector('#watch-canvas')!;
     canvas.onpointerdown = onCanvasTap;
-    if (canvas.width !== stage.clientWidth * devicePixelRatio) {
-      canvas.width = stage.clientWidth * devicePixelRatio;
-      canvas.height = stage.clientHeight * devicePixelRatio;
+    // Fractional devicePixelRatio (1.25/1.5) made an int canvas never equal
+    // the float product — the canvas was being rebuilt every frame.
+    const wantW = Math.floor(stage.clientWidth * devicePixelRatio);
+    const wantH = Math.floor(stage.clientHeight * devicePixelRatio);
+    if (canvas.width !== wantW || canvas.height !== wantH) {
+      canvas.width = wantW;
+      canvas.height = wantH;
       canvas.style.width = `${stage.clientWidth}px`;
       canvas.style.height = `${stage.clientHeight}px`;
     }
