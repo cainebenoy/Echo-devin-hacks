@@ -10,8 +10,8 @@
   players and for demos where the audience watches the blindfolded player on a
   projector (`/watch`). Helps demonstrate real-world human echolocation.
 - **Code repository URL:** https://github.com/cainebenoy/Echo-devin-hacks
-- **Final submitted implementation commit SHA:** recorded at submission time
-  (see latest commit on `main`).
+- **Final submitted implementation commit SHA:** `fa02c82` (implementation
+  complete as of this commit; later commits are docs-only).
 - **Working demo URL or local demo steps:** https://echo-devin-hacks.vercel.app/
   (spectator: `/watch`). Local: `npm install && npm run dev`. Demo flow in
   [DEMO.md](DEMO.md).
