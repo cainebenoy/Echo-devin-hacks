@@ -10,5 +10,5 @@ List checks actually run and their results. Note anything unverified or incomple
 
 - [ ] `CHANGELOG.md` records this change with its actual timestamp and validation.
 - [ ] `README.md` reflects any setup or behavior changes, if applicable.
-- [ ] `AI_USAGE.md` reflects any meaningful Codex contribution, if applicable.
+- [ ] `AI_USAGE.md` reflects any meaningful AI assistance, if this optional record is maintained; no particular tool or provider is required.
 - [ ] The code uses simple patterns and includes no credentials or private data.

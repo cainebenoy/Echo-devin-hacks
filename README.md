@@ -5,7 +5,7 @@ during play. The player taps to make a click, hears the echoes of a simulated
 space in 3D audio through wired earphones, turns by physically turning the
 phone, and must find the exit — later, while something hunts them by sound.
 
-Built for **DevDay Exchange Community Hackathon: Kochi** (see
+Built for **Devin Hack Kochi** (see
 [RULES.md](RULES.md), [AGENTS.md](AGENTS.md)). Full design spec:
 [ECHO_SPEC.md](ECHO_SPEC.md). Demo script: [DEMO.md](DEMO.md). Spec deviations:
 [NOTES.md](NOTES.md).
@@ -75,3 +75,9 @@ sound field represents):
 
 See [AI_USAGE.md](AI_USAGE.md) for the AI-assistance record and
 [CHANGELOG.md](CHANGELOG.md) for the development record.
+
+## Event clarification
+
+Devin Hack Kochi has no major AI usage constraints. Participants may use Devin and other AI tools, models, and providers; this template does not require Codex or restrict AI usage to OpenAI. AI usage notes are project documentation, not an additional event eligibility requirement.
+
+See [RULES.md](RULES.md) for the corrected event guidance.

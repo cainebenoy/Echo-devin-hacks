@@ -11,5 +11,17 @@ AI assistance during the hackathon is documented below.
 
 ## Template preparation
 
+This historical preparation note refers to the older template. It does not define Devin Hack Kochi's event rules or AI tool requirements.
+
 On 10 October 2026, Codex prepared this documentation template from the
 organizer's supplied rules. This record covers participant AI usage above.
+
+## Event documentation correction — 2026-10-24T21:53:05+05:30
+
+- Tool: Codex.
+- Task: correct the organizer-shared template to Devin Hack Kochi and clarify
+  that the event has no major AI usage constraints.
+- Affected files: `.github/pull_request_template.md`, `AGENTS.md`, `AI_USAGE.md`, `CHANGELOG.md`, `README.md`, `RULES.md`, `SUBMISSION.md`.
+- Human review: pending maintainer review of this pull request.
+- Validation: documentation diff, whitespace, and local Markdown link checks;
+  no application code changed and no runtime checks were needed.
