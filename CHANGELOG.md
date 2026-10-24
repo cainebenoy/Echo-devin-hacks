@@ -1,5 +1,24 @@
 # Change log
 
+## 2026-10-25T04:10:00+05:30 — Remove ghost 300×150 rounded rectangle on landing/boot screen
+
+- Changed: `src/style.css`.
+- Why (user screenshot & follow-up): a 300×150 rounded-corner dark
+  rectangle was visible right behind `ECHO` on the landing/boot screen.
+  Root cause: `#debug-overlay.visual { display: flex }` appeared *after*
+  `#debug-overlay.hidden { display: none }` with identical `(1,1,0)`
+  specificity, so calling `overlay.setVisual(true)` overrode `.hidden` and
+  rendered the unresized default 300×150 `<canvas>` (with `border-radius:
+  10px`, `1px solid var(--panel-border)`, and inner dark shadow) at
+  `z-index: 30` on top of `#boot`.
+- Changes:
+  - `#debug-overlay.hidden, #debug-overlay.visual.hidden` now uses
+    `display: none !important` so the debug canvas stays completely hidden
+    until toggled on with `` ` ``.
+  - Restored full `scale(6)` reach on `@keyframes sonar-o`.
+- Validation: `npx tsc --noEmit` clean; `vitest` 105/105; `vite build` clean.
+- Limitations: none.
+
 ## 2026-10-25T04:00:00+05:30 — Duck exit wind & drips when creature is near
 
 - Changed: `src/audio/sources.ts`, `src/game/loop.ts`.
