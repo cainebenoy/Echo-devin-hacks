@@ -110,7 +110,6 @@ body::after {
   font-size: clamp(4rem, 22vw, 9rem);
   font-weight: 100;
   letter-spacing: 0.4em;
-  margin-left: 0.4em;
   color: var(--ink);
   text-shadow:
     0 0 40px rgba(103, 232, 249, 0.35),
@@ -233,7 +232,6 @@ body::after {
   font-size: clamp(2.6rem, 9vw, 4.4rem);
   font-weight: 100;
   letter-spacing: 0.4em;
-  margin-left: 0.4em;
   color: var(--ink);
   /* Faint chromatic split under the glow — a dying-display unease. */
   text-shadow:
@@ -244,14 +242,10 @@ body::after {
 }
 /* The ping originates inside the O of the wordmark — the first echo.
    letter-spacing:0 keeps the span box tight to the glyph; line-height:1
-   shrinks it to the cap-height so ~46% lands on the O's ink centre, not
-   the taller line-box middle. */
-/* The ping originates inside the O of the wordmark — the first echo.
-   letter-spacing:0 keeps the span box tight to the glyph; line-height:1
-   shrinks it to the cap-height. The anchor is em-based so it lands on the
-   O's ink centre at every font size (~0.45em above the box top). */
+   shrinks it to 1em. --o-cy is measured from the active OS font's actual
+   'O' ink bounds at startup (fallback 56.5% for Segoe UI). */
 .o { position: relative; display: inline-block; letter-spacing: 0; line-height: 1; }
-.o .sonar { left: 50%; top: 0.45em; }
+.o .sonar { left: 50%; top: var(--o-cy, 56.5%); }
 .o .sonar i {
   left: -40px;
   top: -40px;

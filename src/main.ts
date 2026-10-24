@@ -76,6 +76,25 @@ function boot(): void {
   const rgSub = app.querySelector<HTMLElement>('#rg-sub')!;
   const rgBtn = app.querySelector<HTMLButtonElement>('#rg-start')!;
 
+  // Measure the active system font's exact 'O' ink centre (ascent/descent
+  // vs cap-height) so the sonar rings sit dead-centre inside the O on
+  // Windows (Segoe UI), macOS/iOS (SF Pro), and Android (Roboto).
+  try {
+    const oEl = app.querySelector<HTMLElement>('.o');
+    const c = document.createElement('canvas').getContext('2d');
+    if (oEl && c) {
+      const cs = getComputedStyle(oEl);
+      const fs = parseFloat(cs.fontSize) || 100;
+      c.font = `${cs.fontWeight} ${fs}px ${cs.fontFamily}`;
+      const m = c.measureText('O');
+      if (m.fontBoundingBoxAscent && m.actualBoundingBoxAscent) {
+        const base = m.fontBoundingBoxAscent + (fs - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2;
+        const cy = base - (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
+        app.style.setProperty('--o-cy', `${((cy / fs) * 100).toFixed(2)}%`);
+      }
+    }
+  } catch { /* fallback 56.5% in CSS */ }
+
   const results = new ResultsScreen(app);
   const boardUi = new BoardUI(app);
   // L/Shift+L work here too — the board hints at them wherever it appears.

@@ -1,5 +1,24 @@
 # Change log
 
+## 2026-10-25T04:25:00+05:30 — Exact 'O' ink-centre alignment + re-centered wordmark
+
+- Changed: `src/main.ts`, `src/style.css`.
+- Why (user feedback): the sonar rings and core dot were still not
+  centred inside the `O` of `ECHO`.
+- Changes:
+  - Verified via headless screenshot that `top: 0.45em` (~45% of `1em`)
+    landed ~16 px *above* the glyph's ink centre. Bumped the CSS anchor to
+    `56.5%` and added a startup canvas measurement (`main.ts`) that reads
+    the active OS font's `fontBoundingBoxAscent` /
+    `actualBoundingBoxAscent` / `actualBoundingBoxDescent` for `'O'` and
+    sets `--o-cy` dynamically — so the ping lands dead-centre on Segoe UI,
+    SF Pro, Roboto, and any other system font.
+  - Removed `margin-left: 0.4em` from `#boot h1` / `#menu h1` so the full
+    `E C H O` wordmark is horizontally centred instead of offset.
+- Validation: `npx tsc --noEmit` clean; `vitest` 105/105; `vite build`
+  clean; headless screenshots verified ping centre on `O`.
+- Limitations: none.
+
 ## 2026-10-25T04:10:00+05:30 — Remove ghost 300×150 rounded rectangle on landing/boot screen
 
 - Changed: `src/style.css`.
