@@ -799,6 +799,31 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
   outline: none;
 }
 #np-input:focus { border-color: var(--cyan); }
+.np-prev { display: flex; flex-direction: column; gap: 0.4rem; }
+.np-prev-label {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+.np-prev-list { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.np-chip {
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  background: rgba(103, 232, 249, 0.06);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.np-chip em { font-style: normal; color: var(--cyan-dim); margin-left: 0.25rem; }
+.np-chip:hover, .np-chip.sel {
+  border-color: var(--cyan);
+  background: rgba(103, 232, 249, 0.16);
+}
 .np-btns { display: flex; gap: 0.6rem; justify-content: center; }
 .np-btns button {
   flex: 1;

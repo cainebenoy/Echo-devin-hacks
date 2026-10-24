@@ -69,7 +69,7 @@ export class BoardUI {
         if (raw === null) return;
         renameEntry(key, at, sanitizeName(raw));
         this.show(key);
-      }, 'Rename player');
+      }, 'Rename player', key);
     });
   }
 
@@ -166,20 +166,43 @@ export class BoardUI {
         next.onSaved?.(rank, record);
       }
       this.drainPrompts();
-    });
+    }, 'Name this player', next.key);
   }
 
   /**
    * "Name this player" overlay — Enter saves (raw text, caller sanitizes),
    * Esc discards. cb(null) means the run is not recorded.
+   * When `boardKey` has existing entries, shows clickable player chips so
+   * returning players can be picked without retyping (their score updates if
+   * the new run is better).
    */
-  askName(cb: (name: string | null) => void, title = 'Name this player'): void {
+  askName(cb: (name: string | null) => void, title = 'Name this player', boardKey?: string): void {
     this.closePrompt();
+    const existing = boardKey ? loadBoard(boardKey) : [];
+    const seen = new Set<string>();
+    const players = existing.filter((e) => {
+      const k = e.name.toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    }).slice(0, 8);
+    const chipsHtml = players.length === 0 ? '' : `
+      <div class="np-prev">
+        <span class="np-prev-label">Or pick existing player (updates if faster):</span>
+        <div class="np-prev-list">
+          ${players.map((e) => {
+            const tot = Math.round(e.duration);
+            const tm = `${Math.floor(tot / 60)}:${String(tot % 60).padStart(2, '0')}`;
+            return `<button type="button" class="np-chip" data-name="${escapeHtml(e.name)}">${escapeHtml(e.name)} <em>${tm}</em></button>`;
+          }).join('')}
+        </div>
+      </div>`;
     const el = document.createElement('div');
     el.id = 'name-prompt';
     el.innerHTML = `<div class="np-box">
       <p class="np-title">${title} <button class="np-close" title="Skip (Esc)">×</button></p>
       <input id="np-input" maxlength="16" placeholder="Anonymous" autocomplete="off" spellcheck="false" />
+      ${chipsHtml}
       <div class="np-btns">
         <button class="np-save">Save</button>
         <button class="np-skip">Skip</button>
@@ -193,6 +216,19 @@ export class BoardUI {
       e.stopPropagation();
       if (e.key === 'Enter') save();
       else if (e.key === 'Escape') skip();
+    });
+    el.querySelectorAll<HTMLButtonElement>('.np-chip').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        input.value = btn.dataset.name ?? '';
+        el.querySelectorAll('.np-chip').forEach((b) => b.classList.toggle('sel', b === btn));
+        input.focus();
+      });
+      btn.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        input.value = btn.dataset.name ?? '';
+        save();
+      });
     });
     el.querySelector('.np-save')!.addEventListener('click', (e) => { e.stopPropagation(); save(); });
     el.querySelector('.np-skip')!.addEventListener('click', (e) => { e.stopPropagation(); skip(); });

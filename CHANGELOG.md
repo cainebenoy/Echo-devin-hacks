@@ -1,5 +1,28 @@
 # Change log
 
+## 2026-10-25T03:30:00+05:30 — Returning-player picker + best-score deduplication
+
+- Changed: `src/spectate/leaderboard.ts`, `src/spectate/boardui.ts`,
+  `src/style.css`, `tests/leaderboard.test.ts`.
+- Why (user feedback): entering a name that already existed on the board
+  added a duplicate row instead of updating that player's best score, and
+  there was no way to pick an existing name directly from the prompt.
+- Changes:
+  - `saveRun` now matches existing entries case-insensitively: if the new
+    run ranks better (`compareEntries(candidate, existing) < 0` — escaped
+    beats caught, faster duration, fewer clicks), it rewrites that player's
+    entry; if the previous run was already faster, it keeps the previous
+    best and adds no duplicate (`record` only fires when the #1 spot
+    actually improved).
+  - `renameEntry` also deduplicates by name (keeping the higher-ranked run)
+    so existing duplicates can be merged by renaming.
+  - `askName` renders clickable `.np-chip` pills for existing players on
+    that board (`Name 0:45`) — click to fill the input (or double-click to
+    save immediately).
+- Validation: `npx tsc --noEmit` clean; `vitest` 105/105; `vite build` clean.
+- Limitations: deduplication is per board key (calm and normal boards stay
+  independent by design).
+
 ## 2026-10-25T03:15:00+05:30 — Start gate, leaderboard dismiss, Hold audio declutter
 
 - Changed: `src/game/loop.ts`, `src/main.ts`, `src/spectate/boardui.ts`,

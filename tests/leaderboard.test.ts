@@ -125,4 +125,27 @@ describe('storage', () => {
     expect(after).toHaveLength(1);
     expect(after[0].name).toBe('a');
   });
+
+  it('existing player name rewrites score when faster and keeps previous when slower (no duplicate)', () => {
+    const st = memStore();
+    saveRun('hold', run({ duration: 60, clicks: 12 }), 'Caine', st);
+    saveRun('hold', run({ duration: 50, clicks: 10 }), 'Other', st);
+    // Slower repeat by Caine — previous 60s stays, no duplicate row added.
+    const worse = saveRun('hold', run({ duration: 85, clicks: 20 }), 'caine', st);
+    expect(worse.improved).toBe(false);
+    expect(worse.record).toBe(false);
+    let board = loadBoard('hold', st);
+    expect(board).toHaveLength(2);
+    expect(board.find((e) => e.name.toLowerCase() === 'caine')?.duration).toBe(60);
+
+    // Faster repeat by Caine — rewrites Caine's entry to 40s and takes #1.
+    const better = saveRun('hold', run({ duration: 40, clicks: 8 }), 'Caine', st);
+    expect(better.improved).toBe(true);
+    expect(better.rank).toBe(0);
+    expect(better.record).toBe(true);
+    board = loadBoard('hold', st);
+    expect(board).toHaveLength(2);
+    expect(board[0].name).toBe('Caine');
+    expect(board[0].duration).toBe(40);
+  });
 });
