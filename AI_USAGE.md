@@ -32,3 +32,15 @@ organizer's supplied rules. This record covers participant AI usage above.
 - Human review: pending maintainer review of this pull request.
 - Validation: documentation diff, whitespace, and local Markdown link checks;
   no application code changed and no runtime checks were needed.
+
+## Review-driven hardening pass — 2026-10-25T05:35:00+05:30
+
+- Tool: Devin (SWE-2 Max).
+- Task: verify and fix an external code review's findings (18 items across
+  input handling, /draw editor, spectator transport, leaderboard, narrator,
+  storage guards, PWA update safety).
+- Assistance: verified each finding against source, implemented fixes, added
+  regression tests (caught-ranking, Anonymous merge, narrator interrupt).
+- Human review: changes reviewed via git diff; commit 63a64c5.
+- Checks: `npx tsc --noEmit` clean, `vitest` 110/110 (13 files), `vite build`
+  clean. Not browser-verified on this machine.
